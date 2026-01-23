@@ -8,6 +8,8 @@
   import AIM from '$lib/toys/AIM.svelte';
   import Tamagotchi from '$lib/toys/Tamagotchi.svelte';
   import MagicEye from '$lib/toys/MagicEye.svelte';
+  import Clippy from '$lib/toys/Clippy.svelte';
+  import OregonTrail from '$lib/toys/OregonTrail.svelte';
 
   // Which object is currently "open" (fullscreen experience)
   let activeObject = $state<string | null>(null);
@@ -22,6 +24,8 @@
     { id: 'aim', name: 'AIM', icon: '💬' },
     { id: 'tamagotchi', name: 'Tamagotchi', icon: '🐣' },
     { id: 'magiceye', name: 'Magic Eye', icon: '👁️' },
+    { id: 'clippy', name: 'Clippy', icon: '📎' },
+    { id: 'oregontrail', name: 'Oregon Trail', icon: '🤠' },
   ];
 
   function openObject(id: string) {
@@ -116,6 +120,14 @@
 {:else if activeObject === 'magiceye'}
   <div class="object-view">
     <MagicEye onClose={closeObject} />
+  </div>
+{:else if activeObject === 'clippy'}
+  <div class="object-view">
+    <Clippy onClose={closeObject} />
+  </div>
+{:else if activeObject === 'oregontrail'}
+  <div class="object-view">
+    <OregonTrail onClose={closeObject} />
   </div>
 {/if}
 
