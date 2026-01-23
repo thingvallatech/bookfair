@@ -58,12 +58,17 @@
   let stars: Star[] = [];
 
   function initMode() {
-    if (!canvas) return;
+    if (!canvas || !ctx) return;
 
     toasters = [];
     pipes = [];
     drops = [];
     stars = [];
+    pipeTimer = 0;
+
+    // Clear canvas when switching modes
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     if (mode === 'toasters') {
       for (let i = 0; i < 8; i++) {
@@ -76,6 +81,8 @@
         });
       }
     } else if (mode === 'pipes') {
+      // Start with 2 pipes
+      addPipe();
       addPipe();
     } else if (mode === 'matrix') {
       const columns = Math.floor(canvas.width / 20);
@@ -118,8 +125,11 @@
   function draw() {
     if (!ctx || !canvas) return;
 
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Pipes mode doesn't clear - it accumulates trails
+    if (mode !== 'pipes') {
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
 
     if (mode === 'toasters') {
       drawToasters();
@@ -162,46 +172,72 @@
 
     // Draw existing pipes
     for (const pipe of pipes) {
-      ctx.strokeStyle = `hsl(${pipe.hue}, 80%, 50%)`;
-      ctx.lineWidth = 8;
-      ctx.lineCap = 'round';
-
-      const speed = 3;
+      const speed = 4;
       const dx = [speed, -speed, 0, 0][pipe.direction];
       const dy = [0, 0, speed, -speed][pipe.direction];
 
-      ctx.beginPath();
-      ctx.moveTo(pipe.x, pipe.y);
+      const oldX = pipe.x;
+      const oldY = pipe.y;
 
       pipe.x += dx;
       pipe.y += dy;
       pipe.length++;
 
+      // Draw pipe segment with 3D effect
+      const pipeWidth = 12;
+
+      // Main pipe body
+      ctx.strokeStyle = `hsl(${pipe.hue}, 70%, 45%)`;
+      ctx.lineWidth = pipeWidth;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(oldX, oldY);
       ctx.lineTo(pipe.x, pipe.y);
       ctx.stroke();
 
-      // Draw joint
+      // Highlight (lighter edge)
+      ctx.strokeStyle = `hsl(${pipe.hue}, 70%, 65%)`;
+      ctx.lineWidth = pipeWidth * 0.4;
       ctx.beginPath();
-      ctx.arc(pipe.x, pipe.y, 6, 0, Math.PI * 2);
-      ctx.fillStyle = `hsl(${pipe.hue}, 80%, 70%)`;
-      ctx.fill();
+      ctx.moveTo(oldX - 2, oldY - 2);
+      ctx.lineTo(pipe.x - 2, pipe.y - 2);
+      ctx.stroke();
 
-      // Change direction randomly
-      if (pipe.length > 20 && Math.random() < 0.05) {
-        pipe.direction = Math.floor(Math.random() * 4);
+      // Change direction randomly - draw joint at turn
+      if (pipe.length > 30 && Math.random() < 0.08) {
+        // Draw 3D joint ball
+        const gradient = ctx.createRadialGradient(pipe.x, pipe.y, 0, pipe.x, pipe.y, 10);
+        gradient.addColorStop(0, `hsl(${pipe.hue}, 70%, 70%)`);
+        gradient.addColorStop(0.5, `hsl(${pipe.hue}, 70%, 50%)`);
+        gradient.addColorStop(1, `hsl(${pipe.hue}, 70%, 30%)`);
+
+        ctx.beginPath();
+        ctx.arc(pipe.x, pipe.y, 10, 0, Math.PI * 2);
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        // Pick new direction (not reverse)
+        const oldDir = pipe.direction;
+        do {
+          pipe.direction = Math.floor(Math.random() * 4);
+        } while (pipe.direction === (oldDir + 1) % 4 + (oldDir % 2 === 0 ? 1 : -1) || pipe.direction === oldDir);
+
         pipe.length = 0;
       }
 
-      // Reset if out of bounds
-      if (pipe.x < 0 || pipe.x > canvas.width || pipe.y < 0 || pipe.y > canvas.height) {
-        pipe.x = canvas.width / 2;
-        pipe.y = canvas.height / 2;
+      // Reset if out of bounds - start new pipe from random edge
+      if (pipe.x < -20 || pipe.x > canvas.width + 20 || pipe.y < -20 || pipe.y > canvas.height + 20) {
+        // Start from random position
+        pipe.x = Math.random() * canvas.width;
+        pipe.y = Math.random() * canvas.height;
         pipe.hue = Math.random() * 360;
+        pipe.direction = Math.floor(Math.random() * 4);
+        pipe.length = 0;
       }
     }
 
     // Add new pipes occasionally
-    if (pipeTimer % 200 === 0 && pipes.length < 5) {
+    if (pipeTimer % 300 === 0 && pipes.length < 4) {
       addPipe();
     }
   }

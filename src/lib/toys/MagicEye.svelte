@@ -44,15 +44,12 @@
     const width = canvas.width;
     const height = canvas.height;
     const settings = difficultySettings[difficulty];
-    const patternWidth = settings.patternWidth;
-    const maxDepth = settings.depth;
+    const stripWidth = settings.patternWidth;
+    const maxShift = settings.depth;
 
     const random = seededRandom(patternSeed);
 
-    // Create depth map
-    const depthMap = new Float32Array(width * height);
-
-    // Draw shape into depth map
+    // Create depth map by drawing shape
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = width;
     tempCanvas.height = height;
@@ -65,67 +62,35 @@
     shapes[currentShape].fn(tempCtx, width / 2, height / 2, Math.min(width, height) * 0.3);
 
     const depthData = tempCtx.getImageData(0, 0, width, height).data;
-    for (let i = 0; i < width * height; i++) {
-      depthMap[i] = depthData[i * 4] / 255; // Use red channel
-    }
 
-    // Generate pattern strip
-    const pattern: number[][] = [];
-    for (let y = 0; y < height; y++) {
-      pattern[y] = [];
-      for (let x = 0; x < patternWidth; x++) {
-        pattern[y][x] = Math.floor(random() * 256);
-      }
-    }
-
-    // Generate stereogram
+    // Generate random pattern strip for each row
     const imageData = ctx.createImageData(width, height);
     const pixels = imageData.data;
 
     for (let y = 0; y < height; y++) {
-      const same = new Int32Array(width);
-
-      for (let x = 0; x < width; x++) {
-        same[x] = x;
+      // Create a random pattern strip for this row
+      const strip: number[][] = [];
+      for (let x = 0; x < stripWidth; x++) {
+        const hue = random() * 360;
+        const sat = 0.6 + random() * 0.4;
+        const lum = 0.3 + random() * 0.4;
+        strip.push(hslToRgb(hue / 360, sat, lum));
       }
 
+      // For each pixel, determine its color based on depth-shifted pattern
       for (let x = 0; x < width; x++) {
-        const depth = depthMap[y * width + x];
-        const separation = Math.round(patternWidth * (1 - depth * maxDepth / 100));
+        const depthIdx = (y * width + x) * 4;
+        const depth = depthData[depthIdx] / 255; // 0 = background, 1 = foreground
 
-        const left = x - Math.floor(separation / 2);
-        const right = left + separation;
+        // Calculate horizontal shift based on depth
+        // Objects "closer" (white in depth map) shift the pattern
+        const shift = Math.round(depth * maxShift);
 
-        if (left >= 0 && right < width) {
-          let l = left;
-          while (same[l] !== l) l = same[l];
-          let r = right;
-          while (same[r] !== r) r = same[r];
+        // Get pattern position with shift
+        const patternX = ((x + shift) % stripWidth + stripWidth) % stripWidth;
+        const [r, g, b] = strip[patternX];
 
-          if (l !== r) {
-            if (l < r) same[r] = l;
-            else same[l] = r;
-          }
-        }
-      }
-
-      const colors = new Int32Array(width);
-      for (let x = width - 1; x >= 0; x--) {
-        if (same[x] === x) {
-          colors[x] = pattern[y][x % patternWidth];
-        } else {
-          colors[x] = colors[same[x]];
-        }
-      }
-
-      for (let x = 0; x < width; x++) {
         const i = (y * width + x) * 4;
-        const c = colors[x];
-
-        // Colorful pattern
-        const hue = (c + patternSeed) % 256;
-        const [r, g, b] = hslToRgb(hue / 255, 0.7, 0.5);
-
         pixels[i] = r;
         pixels[i + 1] = g;
         pixels[i + 2] = b;
@@ -274,9 +239,12 @@
     </div>
 
     <div class="instructions">
-      <p>👁️ Relax your eyes and look "through" the image</p>
-      <p>👁️ Try crossing your eyes slightly or focusing past the screen</p>
-      <p>👁️ The hidden 3D shape will appear!</p>
+      <p><strong>How to see it:</strong></p>
+      <p>1. Hold your face close to the screen (~6 inches)</p>
+      <p>2. Relax your eyes and look "through" the screen</p>
+      <p>3. Slowly move back while keeping your eyes relaxed</p>
+      <p>4. The hidden <strong>{shapes[currentShape].name}</strong> will pop out in 3D!</p>
+      <p class="tip">💡 Tip: Some people find it easier to cross their eyes slightly</p>
     </div>
 
     <div class="controls">

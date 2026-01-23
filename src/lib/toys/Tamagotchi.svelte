@@ -20,6 +20,13 @@
     lastUpdate: number;
     isDead: boolean;
     poops: number;
+    // New mechanics
+    weight: number; // 1-10, affects evolution
+    discipline: number; // 0-100, affects evolution
+    isSick: boolean;
+    sickCounter: number; // How long sick (dies if too long)
+    careMistakes: number; // Tracks poor care for evolution
+    evolutionPath: 'good' | 'neutral' | 'bad'; // Determined by care quality
   }
 
   const STORAGE_KEY = 'bookfair_tamagotchi';
@@ -30,13 +37,14 @@
   let currentAction = $state<string | null>(null);
   let frame = $state(0);
 
-  const stageSprites: Record<string, string[]> = {
-    egg: ['🥚', '🥚', '🥚', '💫'],
-    baby: ['🐣', '🐥'],
-    child: ['🐤', '🐦'],
-    teen: ['🐧', '🦆'],
-    adult: ['🦉', '🦅'],
-    dead: ['👻', '💀'],
+  // Different sprites based on evolution path
+  const stageSprites: Record<string, Record<string, string[]>> = {
+    egg: { good: ['🥚', '🥚', '🥚', '💫'], neutral: ['🥚', '🥚', '🥚', '💫'], bad: ['🥚', '🥚', '🥚', '💫'] },
+    baby: { good: ['🐣', '🐥'], neutral: ['🐣', '🐥'], bad: ['🐣', '🐥'] },
+    child: { good: ['🐤', '🐦'], neutral: ['🐔', '🐓'], bad: ['🦃', '🐧'] },
+    teen: { good: ['🦜', '🦚'], neutral: ['🦆', '🦢'], bad: ['🦤', '🐦‍⬛'] },
+    adult: { good: ['🦅', '🦉'], neutral: ['🐓', '🦃'], bad: ['🦇', '🐦‍⬛'] },
+    dead: { good: ['👻', '💀'], neutral: ['👻', '💀'], bad: ['👻', '💀'] },
   };
 
   const actionEmojis: Record<string, string> = {
@@ -44,7 +52,15 @@
     play: '⚽',
     sleep: '💤',
     clean: '🧹',
+    medicine: '💊',
+    discipline: '📢',
   };
+
+  // Mini-game state
+  let miniGame = $state<'none' | 'playing' | 'result'>('none');
+  let miniGameTarget = $state(0);
+  let miniGameGuess = $state(5);
+  let miniGameResult = $state('');
 
   function loadPet() {
     try {
@@ -76,6 +92,12 @@
       lastUpdate: Date.now(),
       isDead: false,
       poops: 0,
+      weight: 5,
+      discipline: 50,
+      isSick: false,
+      sickCounter: 0,
+      careMistakes: 0,
+      evolutionPath: 'neutral',
     };
     showNaming = false;
     savePet();
@@ -88,27 +110,68 @@
     const elapsed = (now - pet.lastUpdate) / 1000; // seconds
     const hours = elapsed / 3600;
 
-    // Decay stats over time - MUCH slower so pet survives overnight
-    // ~2% hunger per hour, ~1% happiness per hour
+    // Decay stats over time
     pet.hunger = Math.max(0, pet.hunger - hours * 2);
     pet.happiness = Math.max(0, pet.happiness - hours * 1);
-    pet.energy = Math.min(100, pet.energy + hours * 3); // Energy recovers faster
+    pet.energy = Math.min(100, pet.energy + hours * 3);
 
-    // Add poops over time (1 per 4 hours max)
-    pet.poops = Math.min(5, pet.poops + Math.floor(hours / 4));
+    // Add poops over time (1 per 3 hours)
+    const newPoops = Math.floor(hours / 3);
+    if (newPoops > 0) {
+      pet.poops = Math.min(5, pet.poops + newPoops);
+    }
 
-    // Age up
+    // Track care mistakes
+    if (pet.hunger < 20) pet.careMistakes++;
+    if (pet.happiness < 20) pet.careMistakes++;
+    if (pet.poops >= 4) pet.careMistakes++;
+
+    // Random sickness chance (higher if stats are low or poops accumulated)
+    if (!pet.isSick && hours > 0.1) {
+      const sickChance = (pet.poops * 0.02) + ((100 - pet.hunger) * 0.001) + ((100 - pet.happiness) * 0.001);
+      if (Math.random() < sickChance) {
+        pet.isSick = true;
+        pet.sickCounter = 0;
+        playSound('sad');
+      }
+    }
+
+    // Sickness progression
+    if (pet.isSick) {
+      pet.sickCounter += hours;
+      pet.happiness = Math.max(0, pet.happiness - hours * 3);
+      // Dies if sick too long without medicine (12 hours)
+      if (pet.sickCounter > 12) {
+        pet.isDead = true;
+        playSound('sad');
+      }
+    }
+
+    // Age up and determine evolution path
     const totalHours = (now - pet.born) / 3600000;
+    const prevStage = pet.stage;
+
     if (totalHours < 0.5) pet.stage = 'egg';
     else if (totalHours < 2) pet.stage = 'baby';
     else if (totalHours < 8) pet.stage = 'child';
     else if (totalHours < 24) pet.stage = 'teen';
     else pet.stage = 'adult';
 
+    // Calculate evolution path when evolving
+    if (prevStage !== pet.stage && pet.stage !== 'egg') {
+      if (pet.careMistakes <= 3 && pet.discipline >= 60) {
+        pet.evolutionPath = 'good';
+      } else if (pet.careMistakes >= 10 || pet.discipline <= 20) {
+        pet.evolutionPath = 'bad';
+      } else {
+        pet.evolutionPath = 'neutral';
+      }
+      pet.careMistakes = 0; // Reset for next stage
+    }
+
     pet.age = Math.floor(totalHours / 24);
 
-    // Check death - only if BOTH hunger and happiness are critically low
-    // This gives more warning and is less punishing
+    // Check death conditions
     if (pet.hunger <= 0 && pet.happiness <= 20) {
       pet.isDead = true;
       playSound('sad');
@@ -132,13 +195,15 @@
         playSound('eat');
         pet.hunger = Math.min(100, pet.hunger + 30);
         pet.energy = Math.max(0, pet.energy - 5);
+        // Overfeeding increases weight
+        if (pet.hunger > 90) {
+          pet.weight = Math.min(10, pet.weight + 1);
+        }
         break;
       case 'play':
-        playSound('happy');
-        pet.happiness = Math.min(100, pet.happiness + 25);
-        pet.energy = Math.max(0, pet.energy - 15);
-        pet.hunger = Math.max(0, pet.hunger - 10);
-        break;
+        // Start mini-game instead of instant happiness
+        startMiniGame();
+        return; // Don't save yet
       case 'sleep':
         playSound('ding', 0.3);
         pet.energy = Math.min(100, pet.energy + 40);
@@ -148,10 +213,67 @@
         pet.poops = 0;
         pet.happiness = Math.min(100, pet.happiness + 10);
         break;
+      case 'medicine':
+        if (pet.isSick) {
+          playSound('ding', 0.5);
+          pet.isSick = false;
+          pet.sickCounter = 0;
+          pet.happiness = Math.min(100, pet.happiness + 5);
+        } else {
+          // Giving medicine when not sick is bad
+          playSound('error');
+          pet.happiness = Math.max(0, pet.happiness - 5);
+        }
+        break;
+      case 'discipline':
+        playSound('click', 0.5);
+        pet.discipline = Math.min(100, pet.discipline + 15);
+        pet.happiness = Math.max(0, pet.happiness - 10);
+        break;
     }
 
     pet.lastUpdate = Date.now();
     savePet();
+  }
+
+  function startMiniGame() {
+    if (!pet) return;
+    miniGame = 'playing';
+    miniGameTarget = Math.floor(Math.random() * 10) + 1;
+    miniGameGuess = 5;
+    miniGameResult = '';
+    playSound('click');
+  }
+
+  function submitGuess() {
+    if (!pet || miniGame !== 'playing') return;
+
+    const diff = Math.abs(miniGameGuess - miniGameTarget);
+
+    if (diff === 0) {
+      miniGameResult = '🎉 Perfect! +30 happiness!';
+      pet.happiness = Math.min(100, pet.happiness + 30);
+      pet.weight = Math.max(1, pet.weight - 1); // Exercise helps weight
+      playSound('victory');
+    } else if (diff <= 2) {
+      miniGameResult = '👍 Close! +20 happiness!';
+      pet.happiness = Math.min(100, pet.happiness + 20);
+      playSound('happy');
+    } else {
+      miniGameResult = '😅 Try again! +10 happiness';
+      pet.happiness = Math.min(100, pet.happiness + 10);
+      playSound('pop');
+    }
+
+    pet.energy = Math.max(0, pet.energy - 15);
+    pet.hunger = Math.max(0, pet.hunger - 10);
+    miniGame = 'result';
+
+    setTimeout(() => {
+      miniGame = 'none';
+      currentAction = null;
+      savePet();
+    }, 2000);
   }
 
   function resetPet() {
@@ -168,16 +290,25 @@
   function getMood(): string {
     if (!pet) return '';
     if (pet.isDead) return 'Gone to a better place...';
-    // Critical warning - about to die
+    if (pet.isSick) return '🤒 Feeling sick! Give medicine!';
     if (pet.hunger < 10 || pet.happiness < 10) return '⚠️ CRITICAL! Need care NOW!';
     if (pet.hunger < 20) return '😰 So hungry...';
     if (pet.happiness < 20) return '😢 Very sad...';
     if (pet.energy < 20) return '😴 Exhausted...';
     if (pet.poops >= 4) return '🤢 It stinks in here!';
     if (pet.poops >= 2) return '💩 Needs cleaning...';
+    if (pet.weight >= 8) return '🍔 Feeling heavy...';
+    if (pet.discipline < 30) return '😈 Being naughty!';
     if (pet.hunger > 80 && pet.happiness > 80) return '😊 So happy!';
     if (pet.hunger > 60 && pet.happiness > 60) return '🙂 Doing great!';
     return '😐 Doing okay';
+  }
+
+  function getSprite(): string {
+    if (!pet) return '🥚';
+    if (pet.isDead) return stageSprites.dead[pet.evolutionPath][frame];
+    if (pet.isSick) return '🤢';
+    return stageSprites[pet.stage][pet.evolutionPath][frame];
   }
 
   let animationInterval: number;
@@ -242,63 +373,78 @@
         {:else if pet}
           <!-- Main pet screen -->
           <div class="pet-screen">
-            <!-- Pet display -->
-            <div class="pet-area">
-              {#if currentAction}
-                <div class="action-emoji">{actionEmojis[currentAction]}</div>
-              {/if}
-
-              <div class="pet-sprite" class:dead={pet.isDead} class:sleeping={currentAction === 'sleep'}>
-                {#if pet.isDead}
-                  {stageSprites.dead[frame]}
-                {:else}
-                  {stageSprites[pet.stage][frame]}
+            {#if miniGame === 'playing'}
+              <!-- Mini-game -->
+              <div class="mini-game">
+                <p>Guess the number!</p>
+                <p class="mini-game-hint">(1-10)</p>
+                <div class="guess-display">{miniGameGuess}</div>
+                <div class="guess-controls">
+                  <button onclick={() => miniGameGuess = Math.max(1, miniGameGuess - 1)}>◀</button>
+                  <button onclick={submitGuess}>OK</button>
+                  <button onclick={() => miniGameGuess = Math.min(10, miniGameGuess + 1)}>▶</button>
+                </div>
+              </div>
+            {:else if miniGame === 'result'}
+              <div class="mini-game-result">
+                <p>{miniGameResult}</p>
+                <p class="answer">It was {miniGameTarget}!</p>
+              </div>
+            {:else}
+              <!-- Pet display -->
+              <div class="pet-area">
+                {#if currentAction}
+                  <div class="action-emoji">{actionEmojis[currentAction]}</div>
                 {/if}
-              </div>
 
-              <!-- Poops -->
-              <div class="poop-area">
-                {#each Array(pet.poops) as _}
-                  <span class="poop">💩</span>
-                {/each}
-              </div>
-            </div>
+                <div class="pet-sprite" class:dead={pet.isDead} class:sleeping={currentAction === 'sleep'} class:sick={pet.isSick}>
+                  {getSprite()}
+                </div>
 
-            <!-- Info -->
-            <div class="pet-info">
-              <div class="pet-name">{pet.name}</div>
-              <div class="pet-mood">{getMood()}</div>
-              <div class="pet-age">Age: {pet.age} days</div>
-            </div>
-
-            <!-- Stats -->
-            <div class="stats">
-              <div class="stat">
-                <span class="stat-icon">🍖</span>
-                <div class="stat-bar">
-                  <div class="stat-fill" style="width: {pet.hunger}%; background: {getStatColor(pet.hunger)}"></div>
+                <!-- Poops -->
+                <div class="poop-area">
+                  {#each Array(pet.poops) as _}
+                    <span class="poop">💩</span>
+                  {/each}
                 </div>
               </div>
-              <div class="stat">
-                <span class="stat-icon">💖</span>
-                <div class="stat-bar">
-                  <div class="stat-fill" style="width: {pet.happiness}%; background: {getStatColor(pet.happiness)}"></div>
+
+              <!-- Info -->
+              <div class="pet-info">
+                <div class="pet-name">{pet.name}</div>
+                <div class="pet-mood">{getMood()}</div>
+                <div class="pet-age">Age: {pet.age}d • {pet.evolutionPath}</div>
+              </div>
+
+              <!-- Stats -->
+              <div class="stats">
+                <div class="stat">
+                  <span class="stat-icon">🍖</span>
+                  <div class="stat-bar">
+                    <div class="stat-fill" style="width: {pet.hunger}%; background: {getStatColor(pet.hunger)}"></div>
+                  </div>
+                </div>
+                <div class="stat">
+                  <span class="stat-icon">💖</span>
+                  <div class="stat-bar">
+                    <div class="stat-fill" style="width: {pet.happiness}%; background: {getStatColor(pet.happiness)}"></div>
+                  </div>
+                </div>
+                <div class="stat">
+                  <span class="stat-icon">⚡</span>
+                  <div class="stat-bar">
+                    <div class="stat-fill" style="width: {pet.energy}%; background: {getStatColor(pet.energy)}"></div>
+                  </div>
                 </div>
               </div>
-              <div class="stat">
-                <span class="stat-icon">⚡</span>
-                <div class="stat-bar">
-                  <div class="stat-fill" style="width: {pet.energy}%; background: {getStatColor(pet.energy)}"></div>
-                </div>
-              </div>
-            </div>
+            {/if}
           </div>
         {/if}
       </div>
     </div>
 
     <!-- Buttons -->
-    {#if pet && !pet.isDead}
+    {#if pet && !pet.isDead && miniGame === 'none'}
       <div class="buttons">
         <button class="device-btn" onclick={() => doAction('feed')} title="Feed">
           🍖
@@ -309,8 +455,16 @@
         <button class="device-btn" onclick={() => doAction('sleep')} title="Sleep">
           💤
         </button>
+      </div>
+      <div class="buttons">
         <button class="device-btn" onclick={() => doAction('clean')} title="Clean">
           🧹
+        </button>
+        <button class="device-btn" onclick={() => doAction('medicine')} title="Medicine" class:alert={pet.isSick}>
+          💊
+        </button>
+        <button class="device-btn" onclick={() => doAction('discipline')} title="Discipline">
+          📢
         </button>
       </div>
     {:else if pet?.isDead}
@@ -583,5 +737,71 @@
 
   .device-bottom {
     height: 30px;
+  }
+
+  /* Mini-game styles */
+  .mini-game, .mini-game-result {
+    text-align: center;
+    padding: 10px;
+  }
+
+  .mini-game p, .mini-game-result p {
+    font-size: 6px;
+    color: #1f2937;
+    margin: 4px 0;
+  }
+
+  .mini-game-hint {
+    font-size: 5px !important;
+    color: #6b7280 !important;
+  }
+
+  .guess-display {
+    font-size: 24px;
+    font-weight: bold;
+    color: #1f2937;
+    margin: 8px 0;
+  }
+
+  .guess-controls {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .guess-controls button {
+    width: 30px;
+    height: 24px;
+    background: #1f2937;
+    color: #a7f3d0;
+    border: none;
+    font-family: inherit;
+    font-size: 10px;
+    cursor: pointer;
+  }
+
+  .mini-game-result .answer {
+    font-size: 8px !important;
+    color: #059669 !important;
+    margin-top: 8px;
+  }
+
+  .pet-sprite.sick {
+    animation: sick 0.5s ease-in-out infinite;
+  }
+
+  @keyframes sick {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-3px); }
+    75% { transform: translateX(3px); }
+  }
+
+  .device-btn.alert {
+    animation: alertPulse 1s ease-in-out infinite;
+  }
+
+  @keyframes alertPulse {
+    0%, 100% { box-shadow: 0 4px 0 #78350f; }
+    50% { box-shadow: 0 4px 0 #78350f, 0 0 10px #ef4444; }
   }
 </style>

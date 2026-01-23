@@ -9,7 +9,7 @@
   let { onClose }: Props = $props();
 
   interface GameState {
-    screen: 'title' | 'name' | 'store' | 'travel' | 'event' | 'dead' | 'win';
+    screen: 'title' | 'name' | 'store' | 'travel' | 'event' | 'dead' | 'win' | 'river' | 'hunt' | 'landmark';
     name: string;
     miles: number;
     food: number;
@@ -19,6 +19,14 @@
     pace: 'steady' | 'strenuous' | 'grueling';
     day: number;
     eventText: string;
+    // New mechanics
+    weather: 'clear' | 'rain' | 'hot' | 'cold';
+    ammo: number;
+    clothes: number;
+    nextLandmark: number;
+    landmarkName: string;
+    partySize: number;
+    huntResult: string;
   }
 
   let game = $state<GameState>({
@@ -32,7 +40,24 @@
     pace: 'steady',
     day: 1,
     eventText: '',
+    weather: 'clear',
+    ammo: 0,
+    clothes: 0,
+    nextLandmark: 200,
+    landmarkName: 'Fort Kearney',
+    partySize: 4,
+    huntResult: '',
   });
+
+  const landmarks = [
+    { miles: 200, name: 'Fort Kearney' },
+    { miles: 500, name: 'Chimney Rock' },
+    { miles: 800, name: 'Fort Laramie' },
+    { miles: 1000, name: 'Independence Rock' },
+    { miles: 1300, name: 'South Pass' },
+    { miles: 1600, name: 'Fort Bridger' },
+    { miles: 1800, name: 'Blue Mountains' },
+  ];
 
   let nameInput = $state('');
 
@@ -71,6 +96,9 @@
       game.money -= cost;
       if (item === 'food') game.food += amount;
       if (item === 'oxen') game.oxen += amount;
+      if (item === 'ammo') game.ammo += amount;
+      if (item === 'clothes') game.clothes += amount;
+      playSound('click', 0.3);
     }
   }
 
@@ -88,27 +116,68 @@
 
   function travel() {
     playSound('wagon', 0.3);
-    // Calculate miles based on pace and oxen
-    const paceMultiplier = game.pace === 'steady' ? 1 : game.pace === 'strenuous' ? 1.5 : 2;
+
+    // Random weather changes
+    if (Math.random() < 0.3) {
+      const weathers: ('clear' | 'rain' | 'hot' | 'cold')[] = ['clear', 'clear', 'rain', 'hot', 'cold'];
+      game.weather = weathers[Math.floor(Math.random() * weathers.length)];
+    }
+
+    // Calculate miles based on pace, oxen, and weather
+    let paceMultiplier = game.pace === 'steady' ? 1 : game.pace === 'strenuous' ? 1.5 : 2;
+    if (game.weather === 'rain') paceMultiplier *= 0.7;
+    if (game.weather === 'hot' || game.weather === 'cold') paceMultiplier *= 0.85;
+
     const milesPerDay = 15 * paceMultiplier * Math.min(game.oxen, 2);
     game.miles += Math.round(milesPerDay);
     game.day += 1;
 
-    // Consume food
-    const foodConsumed = 5 + (game.pace === 'grueling' ? 3 : game.pace === 'strenuous' ? 1 : 0);
+    // Consume food (more with larger party)
+    const baseFood = 3 + game.partySize;
+    const foodConsumed = baseFood + (game.pace === 'grueling' ? 3 : game.pace === 'strenuous' ? 1 : 0);
     game.food = Math.max(0, game.food - foodConsumed);
 
-    // Health effects from pace
+    // Health effects from pace and weather
     if (game.pace === 'grueling') game.health -= 5;
     else if (game.pace === 'strenuous') game.health -= 2;
+
+    // Weather effects (clothes help)
+    if (game.weather === 'cold' && game.clothes < game.partySize) {
+      game.health -= 5;
+    }
+    if (game.weather === 'hot') {
+      game.health -= 2;
+    }
 
     // Starving
     if (game.food <= 0) {
       game.health -= 10;
+      if (Math.random() < 0.2 && game.partySize > 1) {
+        game.partySize--;
+        game.eventText = `A member of your party has died of starvation. Party size: ${game.partySize}`;
+        game.screen = 'event';
+        return;
+      }
     }
 
-    // Random event (40% chance)
-    if (Math.random() < 0.4) {
+    // Check for landmark
+    const landmark = landmarks.find(l => game.miles >= l.miles && game.nextLandmark === l.miles);
+    if (landmark) {
+      game.landmarkName = landmark.name;
+      const nextIdx = landmarks.findIndex(l => l.miles === landmark.miles) + 1;
+      game.nextLandmark = nextIdx < landmarks.length ? landmarks[nextIdx].miles : TOTAL_MILES;
+      game.screen = 'landmark';
+      return;
+    }
+
+    // River crossing (every ~400 miles)
+    if (game.miles > 100 && Math.random() < 0.15) {
+      game.screen = 'river';
+      return;
+    }
+
+    // Random event (35% chance)
+    if (Math.random() < 0.35) {
       const event = events[Math.floor(Math.random() * events.length)];
       game.eventText = event.text;
       game.food = Math.max(0, game.food + event.food);
@@ -119,6 +188,65 @@
     }
 
     checkEndConditions();
+  }
+
+  function hunt() {
+    if (game.ammo <= 0) {
+      game.huntResult = 'No ammunition! Buy ammo at forts.';
+      return;
+    }
+
+    game.ammo -= 10;
+    game.day += 1;
+    playSound('click');
+
+    const roll = Math.random();
+    if (roll < 0.1) {
+      game.huntResult = '🦌 Shot a deer! +60 food';
+      game.food += 60;
+    } else if (roll < 0.3) {
+      game.huntResult = '🐇 Got some rabbits! +25 food';
+      game.food += 25;
+    } else if (roll < 0.5) {
+      game.huntResult = '🦆 Bagged some birds! +15 food';
+      game.food += 15;
+    } else if (roll < 0.7) {
+      game.huntResult = '🦃 Got a wild turkey! +20 food';
+      game.food += 20;
+    } else {
+      game.huntResult = '❌ Hunting unsuccessful. Try again.';
+    }
+
+    game.screen = 'hunt';
+  }
+
+  function fordRiver() {
+    playSound('whoosh');
+    if (Math.random() < 0.3) {
+      const lostFood = Math.min(game.food, 20);
+      game.food -= lostFood;
+      game.eventText = `The river was rough! Lost ${lostFood} lbs of food.`;
+      if (Math.random() < 0.2 && game.oxen > 1) {
+        game.oxen--;
+        game.eventText += ' An ox drowned!';
+      }
+    } else {
+      game.eventText = 'Successfully forded the river!';
+    }
+    game.screen = 'event';
+  }
+
+  function floatRiver() {
+    playSound('whoosh');
+    if (Math.random() < 0.15) {
+      game.eventText = 'Your wagon capsized! Lost supplies.';
+      game.food = Math.max(0, game.food - 30);
+      game.ammo = Math.max(0, game.ammo - 20);
+      game.health -= 10;
+    } else {
+      game.eventText = 'Floated across safely!';
+    }
+    game.screen = 'event';
   }
 
   function continueFromEvent() {
@@ -160,8 +288,24 @@
       pace: 'steady',
       day: 1,
       eventText: '',
+      weather: 'clear',
+      ammo: 0,
+      clothes: 0,
+      nextLandmark: 200,
+      landmarkName: 'Fort Kearney',
+      partySize: 4,
+      huntResult: '',
     };
     nameInput = '';
+  }
+
+  function getWeatherEmoji(): string {
+    switch (game.weather) {
+      case 'rain': return '🌧️';
+      case 'hot': return '🔥';
+      case 'cold': return '❄️';
+      default: return '☀️';
+    }
   }
 </script>
 
@@ -208,32 +352,48 @@
             <span>Food (10 lbs)</span>
             <span>$5</span>
             <button onclick={() => buyItem('food', 5, 10)}>Buy</button>
-            <span>Owned: {game.food} lbs</span>
+            <span>{game.food} lbs</span>
           </div>
           <div class="store-item">
             <span>Oxen</span>
             <span>$40</span>
             <button onclick={() => buyItem('oxen', 40, 1)}>Buy</button>
-            <span>Owned: {game.oxen}</span>
+            <span>{game.oxen}</span>
+          </div>
+          <div class="store-item">
+            <span>Ammo (20)</span>
+            <span>$10</span>
+            <button onclick={() => buyItem('ammo', 10, 20)}>Buy</button>
+            <span>{game.ammo}</span>
+          </div>
+          <div class="store-item">
+            <span>Clothes</span>
+            <span>$15</span>
+            <button onclick={() => buyItem('clothes', 15, 1)}>Buy</button>
+            <span>{game.clothes}</span>
           </div>
         </div>
 
+        <p class="store-tip">Tip: Buy clothes for cold weather, ammo for hunting!</p>
         <button class="game-btn" onclick={leaveStore}>Leave Store</button>
       </div>
 
     {:else if game.screen === 'travel'}
       <div class="travel-screen">
         <div class="landscape">
-          <div class="sun">☀️</div>
+          <div class="sun">{getWeatherEmoji()}</div>
           <div class="mountains">🏔️🏔️🏔️</div>
           <div class="wagon">🐂🚗</div>
           <div class="ground"></div>
         </div>
 
+        <div class="next-landmark">Next: {game.landmarkName} ({game.nextLandmark - game.miles} mi)</div>
+
         <div class="stats">
           <div class="stat-row">
             <span>Day: {game.day}</span>
-            <span>Miles: {game.miles}/{TOTAL_MILES}</span>
+            <span>Party: {game.partySize}</span>
+            <span>Miles: {game.miles}</span>
           </div>
           <div class="stat-row">
             <span>Health: {game.health}%</span>
@@ -241,6 +401,8 @@
           </div>
           <div class="stat-row">
             <span>Oxen: {game.oxen}</span>
+            <span>Ammo: {game.ammo}</span>
+            <span>Weather: {game.weather}</span>
           </div>
         </div>
 
@@ -267,7 +429,44 @@
 
         <div class="actions">
           <button class="game-btn" onclick={travel}>Continue Trail</button>
-          <button class="game-btn secondary" onclick={rest}>Rest (restore health)</button>
+          <button class="game-btn secondary" onclick={hunt}>Hunt 🎯</button>
+          <button class="game-btn secondary" onclick={rest}>Rest 💤</button>
+        </div>
+      </div>
+
+    {:else if game.screen === 'river'}
+      <div class="river-screen">
+        <div class="river-visual">🌊🌊🌊🌊🌊</div>
+        <h2>River Crossing</h2>
+        <p>The river is deep and swift. How will you cross?</p>
+        <div class="actions">
+          <button class="game-btn" onclick={fordRiver}>Ford the river (risky)</button>
+          <button class="game-btn" onclick={floatRiver}>Float across (safer)</button>
+        </div>
+      </div>
+
+    {:else if game.screen === 'hunt'}
+      <div class="event-screen">
+        <div class="event-box">
+          <h3>🎯 Hunting</h3>
+          <p>{game.huntResult}</p>
+          <p class="ammo-left">Ammo remaining: {game.ammo}</p>
+        </div>
+        <button class="game-btn" onclick={() => game.screen = 'travel'}>Continue</button>
+      </div>
+
+    {:else if game.screen === 'landmark'}
+      <div class="landmark-screen">
+        <h2>🏛️ {game.landmarkName}</h2>
+        <p>You've reached a landmark! You can rest and resupply here.</p>
+        <p>Miles traveled: {game.miles}</p>
+        <div class="actions">
+          <button class="game-btn" onclick={() => { game.health = Math.min(100, game.health + 20); game.screen = 'travel'; }}>
+            Rest (+20 health)
+          </button>
+          <button class="game-btn secondary" onclick={() => game.screen = 'travel'}>
+            Continue on
+          </button>
         </div>
       </div>
 
@@ -606,5 +805,59 @@
   .win-screen p {
     font-size: 0.5rem;
     margin: 10px 0;
+  }
+
+  .store-tip {
+    font-size: 0.5rem;
+    color: #00aa00;
+    margin: 15px 0;
+  }
+
+  .next-landmark {
+    font-size: 0.6rem;
+    color: #00ff00;
+    text-align: center;
+    margin-bottom: 10px;
+    padding: 5px;
+    border: 1px dashed #00aa00;
+  }
+
+  .river-screen {
+    text-align: center;
+  }
+
+  .river-visual {
+    font-size: 2rem;
+    margin: 20px 0;
+    animation: wave 1s ease-in-out infinite;
+  }
+
+  @keyframes wave {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(10px); }
+  }
+
+  .river-screen p {
+    font-size: 0.6rem;
+    margin: 15px 0;
+  }
+
+  .landmark-screen {
+    text-align: center;
+  }
+
+  .landmark-screen h2 {
+    color: #ffff00;
+  }
+
+  .landmark-screen p {
+    font-size: 0.55rem;
+    margin: 10px 0;
+  }
+
+  .ammo-left {
+    font-size: 0.5rem;
+    color: #00aa00;
+    margin-top: 15px;
   }
 </style>
