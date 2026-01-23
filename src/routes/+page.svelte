@@ -16,6 +16,8 @@
   import OregonTrail from '$lib/toys/OregonTrail.svelte';
   import LisaFrank from '$lib/toys/LisaFrank.svelte';
   import Screensaver from '$lib/toys/Screensaver.svelte';
+  import BeanieBaby from '$lib/toys/BeanieBaby.svelte';
+  import FishTank from '$lib/toys/FishTank.svelte';
 
   // Which object is currently "open" (fullscreen experience)
   let activeObject = $state<string | null>(null);
@@ -36,6 +38,8 @@
     { id: 'oregontrail', name: 'Oregon Trail', icon: '🤠', desc: 'You have dysentery' },
     { id: 'lisafrank', name: 'Lisa Frank', icon: '🦄', desc: 'Rainbows forever' },
     { id: 'screensaver', name: 'Screensaver', icon: '🖥️', desc: 'Flying toasters' },
+    { id: 'beaniebaby', name: 'Beanie Baby', icon: '🧸', desc: 'Collect them all!', persists: true },
+    { id: 'fishtank', name: 'Fish Tank', icon: '🐠', desc: 'Watch them grow', persists: true },
   ];
 
   const ITEMS_PER_PAGE = 6;
@@ -340,6 +344,14 @@
 {:else if activeObject === 'screensaver'}
   <div class="object-view" role="dialog" aria-label="Screensaver">
     <Screensaver onClose={closeObject} />
+  </div>
+{:else if activeObject === 'beaniebaby'}
+  <div class="object-view" role="dialog" aria-label="Beanie Baby">
+    <BeanieBaby onClose={closeObject} />
+  </div>
+{:else if activeObject === 'fishtank'}
+  <div class="object-view" role="dialog" aria-label="Fish Tank">
+    <FishTank onClose={closeObject} />
   </div>
 {/if}
 
