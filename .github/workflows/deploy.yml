@@ -1,0 +1,19 @@
+name: Deploy to Digital Ocean
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Digital Ocean App Platform
+        uses: digitalocean/app_action@v2
+        with:
+          app_name: bookfair
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
