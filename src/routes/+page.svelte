@@ -1,5 +1,9 @@
 <script lang="ts">
+  import { onMount, onDestroy } from 'svelte';
+  import { browser } from '$app/environment';
   import RetroBackground from '$lib/components/RetroBackground.svelte';
+  import LoadingState from '$lib/components/LoadingState.svelte';
+  import { playSound } from '$lib/stores/audio';
   import DialUpModem from '$lib/toys/DialUpModem.svelte';
   import KooshBall from '$lib/toys/KooshBall.svelte';
   import KidPix from '$lib/toys/KidPix.svelte';
@@ -15,33 +19,190 @@
 
   // Which object is currently "open" (fullscreen experience)
   let activeObject = $state<string | null>(null);
+  let isLoading = $state(false);
+  let focusedIndex = $state(0);
 
-  // Shelf objects - will grow over time
+  // Shelf objects - organized into pages
   const shelfObjects = [
-    { id: 'modem', name: 'Dial-Up Modem', icon: '📠' },
-    { id: 'koosh', name: 'Koosh Ball', icon: '🔴' },
-    { id: 'kidpix', name: 'Kid Pix', icon: '🎨' },
-    { id: 'pogs', name: 'Pog Tube', icon: '🪙' },
-    { id: 'winamp', name: 'Winamp', icon: '🎵' },
-    { id: 'aim', name: 'AIM', icon: '💬' },
-    { id: 'tamagotchi', name: 'Tamagotchi', icon: '🐣' },
-    { id: 'magiceye', name: 'Magic Eye', icon: '👁️' },
-    { id: 'clippy', name: 'Clippy', icon: '📎' },
-    { id: 'oregontrail', name: 'Oregon Trail', icon: '🤠' },
-    { id: 'lisafrank', name: 'Lisa Frank', icon: '🦄' },
-    { id: 'screensaver', name: 'Screensaver', icon: '🖥️' },
+    { id: 'modem', name: 'Dial-Up Modem', icon: '📠', desc: 'Connect to the internet' },
+    { id: 'koosh', name: 'Koosh Ball', icon: '🔴', desc: 'Squish and throw' },
+    { id: 'kidpix', name: 'Kid Pix', icon: '🎨', desc: 'Draw and create' },
+    { id: 'pogs', name: 'Pog Tube', icon: '🪙', desc: 'Slam and collect' },
+    { id: 'winamp', name: 'Winamp', icon: '🎵', desc: 'It really whips...' },
+    { id: 'aim', name: 'AIM', icon: '💬', desc: 'Chat with buddies' },
+    { id: 'tamagotchi', name: 'Tamagotchi', icon: '🐣', desc: 'Care for your pet', persists: true },
+    { id: 'magiceye', name: 'Magic Eye', icon: '👁️', desc: 'See the hidden image' },
+    { id: 'clippy', name: 'Clippy', icon: '📎', desc: 'Need help?' },
+    { id: 'oregontrail', name: 'Oregon Trail', icon: '🤠', desc: 'You have dysentery' },
+    { id: 'lisafrank', name: 'Lisa Frank', icon: '🦄', desc: 'Rainbows forever' },
+    { id: 'screensaver', name: 'Screensaver', icon: '🖥️', desc: 'Flying toasters' },
   ];
 
+  const ITEMS_PER_PAGE = 6;
+  let currentPage = $state(0);
+  const totalPages = Math.ceil(shelfObjects.length / ITEMS_PER_PAGE);
+
+  $effect(() => {
+    // Get current page items
+    return shelfObjects.slice(
+      currentPage * ITEMS_PER_PAGE,
+      (currentPage + 1) * ITEMS_PER_PAGE
+    );
+  });
+
+  function getCurrentPageItems() {
+    return shelfObjects.slice(
+      currentPage * ITEMS_PER_PAGE,
+      (currentPage + 1) * ITEMS_PER_PAGE
+    );
+  }
+
   function openObject(id: string) {
-    const obj = shelfObjects.find(o => o.id === id);
-    if (obj?.comingSoon) return;
-    activeObject = id;
+    playSound('click');
+    isLoading = true;
+
+    // Brief loading state for visual feedback
+    setTimeout(() => {
+      activeObject = id;
+      isLoading = false;
+      // Push state for back button support
+      if (browser) {
+        history.pushState({ object: id }, '', `#${id}`);
+      }
+    }, 300);
   }
 
   function closeObject() {
+    playSound('whoosh', 0.3);
     activeObject = null;
+    if (browser) {
+      history.pushState({}, '', '/');
+    }
   }
+
+  function nextPage() {
+    if (currentPage < totalPages - 1) {
+      playSound('whoosh', 0.2);
+      currentPage++;
+      focusedIndex = 0;
+    }
+  }
+
+  function prevPage() {
+    if (currentPage > 0) {
+      playSound('whoosh', 0.2);
+      currentPage--;
+      focusedIndex = 0;
+    }
+  }
+
+  function handleKeydown(e: KeyboardEvent) {
+    // ESC to close
+    if (e.key === 'Escape' && activeObject) {
+      e.preventDefault();
+      closeObject();
+      return;
+    }
+
+    // Only handle navigation when no object is open
+    if (activeObject) return;
+
+    const currentItems = getCurrentPageItems();
+
+    switch (e.key) {
+      case 'ArrowRight':
+        e.preventDefault();
+        if (focusedIndex < currentItems.length - 1) {
+          focusedIndex++;
+          playSound('click', 0.2);
+        } else if (currentPage < totalPages - 1) {
+          nextPage();
+        }
+        break;
+      case 'ArrowLeft':
+        e.preventDefault();
+        if (focusedIndex > 0) {
+          focusedIndex--;
+          playSound('click', 0.2);
+        } else if (currentPage > 0) {
+          prevPage();
+        }
+        break;
+      case 'ArrowDown':
+        e.preventDefault();
+        if (focusedIndex + 3 < currentItems.length) {
+          focusedIndex += 3;
+          playSound('click', 0.2);
+        }
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        if (focusedIndex - 3 >= 0) {
+          focusedIndex -= 3;
+          playSound('click', 0.2);
+        }
+        break;
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        const item = currentItems[focusedIndex];
+        if (item) openObject(item.id);
+        break;
+    }
+  }
+
+  function handlePopState(e: PopStateEvent) {
+    if (e.state?.object) {
+      activeObject = e.state.object;
+    } else {
+      activeObject = null;
+    }
+  }
+
+  // Touch swipe handling
+  let touchStartX = 0;
+  let touchStartY = 0;
+
+  function handleTouchStart(e: TouchEvent) {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }
+
+  function handleTouchEnd(e: TouchEvent) {
+    if (!activeObject) return;
+
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+    const deltaX = touchEndX - touchStartX;
+    const deltaY = touchEndY - touchStartY;
+
+    // Swipe down to close (at least 100px, more vertical than horizontal)
+    if (deltaY > 100 && Math.abs(deltaY) > Math.abs(deltaX)) {
+      closeObject();
+    }
+  }
+
+  onMount(() => {
+    // Check for hash on load
+    if (browser && window.location.hash) {
+      const id = window.location.hash.slice(1);
+      const obj = shelfObjects.find(o => o.id === id);
+      if (obj) {
+        activeObject = id;
+      }
+    }
+
+    window.addEventListener('keydown', handleKeydown);
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeydown);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  });
 </script>
+
+<svelte:window on:touchstart={handleTouchStart} on:touchend={handleTouchEnd} />
 
 <div class="crt-container">
   <!-- Animated background -->
@@ -63,18 +224,44 @@
       <div class="nes-container is-dark with-title shelf-container">
         <p class="title">~ the shelf ~</p>
 
+        <!-- Page navigation -->
+        <div class="shelf-nav">
+          <button
+            class="nav-btn"
+            onclick={prevPage}
+            disabled={currentPage === 0}
+            aria-label="Previous page"
+          >
+            ◀
+          </button>
+          <span class="page-indicator">
+            {#each Array(totalPages) as _, i}
+              <span class="dot" class:active={i === currentPage}></span>
+            {/each}
+          </span>
+          <button
+            class="nav-btn"
+            onclick={nextPage}
+            disabled={currentPage === totalPages - 1}
+            aria-label="Next page"
+          >
+            ▶
+          </button>
+        </div>
+
         <div class="shelf-items">
-          {#each shelfObjects as obj}
+          {#each getCurrentPageItems() as obj, i}
             <button
               class="shelf-item nes-pointer"
-              class:disabled={obj.comingSoon}
+              class:focused={focusedIndex === i && !activeObject}
               onclick={() => openObject(obj.id)}
-              title={obj.comingSoon ? `${obj.name} (coming soon)` : obj.name}
+              title={obj.desc}
+              tabindex={focusedIndex === i ? 0 : -1}
             >
               <div class="item-icon">{obj.icon}</div>
               <span class="item-label">{obj.name}</span>
-              {#if obj.comingSoon}
-                <span class="nes-badge"><span class="is-error">SOON</span></span>
+              {#if obj.persists}
+                <span class="persist-badge" title="Saves your progress">💾</span>
               {/if}
             </button>
           {/each}
@@ -88,57 +275,70 @@
     </section>
 
     <!-- Hint text -->
-    <p class="hint nes-text is-disabled">click an object to explore</p>
+    <p class="hint nes-text is-disabled">
+      {#if activeObject}
+        swipe down or press ESC to close
+      {:else}
+        click an object to explore · use arrow keys to navigate
+      {/if}
+    </p>
   </main>
 </div>
 
+<!-- Loading overlay -->
+{#if isLoading}
+  <div class="loading-overlay">
+    <LoadingState message="Loading..." />
+  </div>
+{/if}
+
 <!-- Active object overlay -->
 {#if activeObject === 'modem'}
-  <div class="object-view">
+  <div class="object-view" role="dialog" aria-label="Dial-Up Modem">
     <DialUpModem onClose={closeObject} />
   </div>
 {:else if activeObject === 'koosh'}
-  <div class="object-view">
+  <div class="object-view" role="dialog" aria-label="Koosh Ball">
     <KooshBall onClose={closeObject} />
   </div>
 {:else if activeObject === 'kidpix'}
-  <div class="object-view">
+  <div class="object-view" role="dialog" aria-label="Kid Pix">
     <KidPix onClose={closeObject} />
   </div>
 {:else if activeObject === 'pogs'}
-  <div class="object-view">
+  <div class="object-view" role="dialog" aria-label="Pog Tube">
     <PogTube onClose={closeObject} />
   </div>
 {:else if activeObject === 'winamp'}
-  <div class="object-view">
+  <div class="object-view" role="dialog" aria-label="Winamp">
     <Winamp onClose={closeObject} />
   </div>
 {:else if activeObject === 'aim'}
-  <div class="object-view">
+  <div class="object-view" role="dialog" aria-label="AIM">
     <AIM onClose={closeObject} />
   </div>
 {:else if activeObject === 'tamagotchi'}
-  <div class="object-view">
+  <div class="object-view" role="dialog" aria-label="Tamagotchi">
     <Tamagotchi onClose={closeObject} />
   </div>
 {:else if activeObject === 'magiceye'}
-  <div class="object-view">
+  <div class="object-view" role="dialog" aria-label="Magic Eye">
     <MagicEye onClose={closeObject} />
   </div>
 {:else if activeObject === 'clippy'}
-  <div class="object-view">
+  <div class="object-view" role="dialog" aria-label="Clippy">
     <Clippy onClose={closeObject} />
   </div>
 {:else if activeObject === 'oregontrail'}
-  <div class="object-view">
+  <div class="object-view" role="dialog" aria-label="Oregon Trail">
     <OregonTrail onClose={closeObject} />
   </div>
 {:else if activeObject === 'lisafrank'}
-  <div class="object-view">
+  <div class="object-view" role="dialog" aria-label="Lisa Frank">
     <LisaFrank onClose={closeObject} />
   </div>
 {:else if activeObject === 'screensaver'}
-  <div class="object-view">
+  <div class="object-view" role="dialog" aria-label="Screensaver">
     <Screensaver onClose={closeObject} />
   </div>
 {/if}
@@ -158,12 +358,13 @@
     flex-direction: column;
     align-items: center;
     padding: 2rem;
+    padding-top: calc(2rem + env(safe-area-inset-top, 0));
   }
 
   /* Header */
   .site-header {
     text-align: center;
-    margin-bottom: 3rem;
+    margin-bottom: 2rem;
   }
 
   .site-header h1 {
@@ -185,23 +386,76 @@
   /* Shelf Section */
   .shelf-section {
     width: 100%;
-    max-width: 800px;
+    max-width: 700px;
     margin: auto 0;
   }
 
   .shelf-container {
-    background: rgba(33, 37, 41, 0.9) !important;
-    padding: 2rem !important;
+    background: rgba(33, 37, 41, 0.95) !important;
+    padding: 1.5rem !important;
+  }
+
+  /* Shelf Navigation */
+  .shelf-nav {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 1rem;
+  }
+
+  .nav-btn {
+    background: transparent;
+    border: 2px solid #666;
+    color: #888;
+    width: 36px;
+    height: 36px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+  }
+
+  .nav-btn:hover:not(:disabled) {
+    border-color: #f7d51d;
+    color: #f7d51d;
+  }
+
+  .nav-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .page-indicator {
+    display: flex;
+    gap: 8px;
+  }
+
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #444;
+    transition: all 0.2s;
+  }
+
+  .dot.active {
+    background: #f7d51d;
+    box-shadow: 0 0 8px rgba(247, 213, 29, 0.5);
   }
 
   .shelf-items {
-    display: flex;
-    justify-content: space-around;
-    align-items: flex-end;
-    flex-wrap: wrap;
-    gap: 1.5rem;
-    min-height: 120px;
-    padding-top: 1rem;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    min-height: 200px;
+    padding: 1rem 0;
+  }
+
+  @media (max-width: 500px) {
+    .shelf-items {
+      grid-template-columns: repeat(2, 1fr);
+    }
   }
 
   .shelf-item {
@@ -209,77 +463,86 @@
     flex-direction: column;
     align-items: center;
     gap: 0.5rem;
-    background: none;
-    border: none;
-    padding: 1rem;
-    transition: transform 0.2s ease-out;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid transparent;
+    border-radius: 8px;
+    padding: 1rem 0.5rem;
+    transition: all 0.2s ease-out;
     position: relative;
   }
 
-  .shelf-item:hover:not(.disabled) {
-    transform: translateY(-12px) scale(1.1);
+  .shelf-item:hover,
+  .shelf-item.focused {
+    transform: translateY(-8px) scale(1.05);
+    background: rgba(255, 255, 255, 0.1);
+    border-color: #f7d51d;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
   }
 
-  .shelf-item:active:not(.disabled) {
-    transform: translateY(-6px) scale(1.05);
-  }
-
-  .shelf-item.disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  .shelf-item:active {
+    transform: translateY(-4px) scale(1.02);
   }
 
   .item-icon {
-    font-size: 3rem;
+    font-size: 2.5rem;
     line-height: 1;
     filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.5));
   }
 
   .item-label {
-    font-size: 0.5rem;
+    font-size: 0.45rem;
     color: #fff;
     text-shadow: 1px 1px 0 #000;
-    white-space: nowrap;
+    text-align: center;
+    line-height: 1.3;
   }
 
-  .shelf-item .nes-badge {
+  .persist-badge {
     position: absolute;
-    top: -8px;
-    right: -8px;
-    transform: scale(0.7);
+    top: 4px;
+    right: 4px;
+    font-size: 0.7rem;
+    opacity: 0.7;
   }
 
   /* Wood shelf */
   .shelf-wood {
-    height: 24px;
+    height: 20px;
     background: linear-gradient(180deg, #d4a574 0%, #b8956a 50%, #8b6914 100%);
     border: 4px solid #5c4a1f;
     border-top: none;
-    margin: 0 1rem;
+    margin: 0 0.5rem;
     position: relative;
   }
 
   .shelf-shadow {
     position: absolute;
-    bottom: -16px;
+    bottom: -12px;
     left: 10%;
     right: 10%;
-    height: 12px;
+    height: 10px;
     background: rgba(0, 0, 0, 0.3);
-    filter: blur(8px);
+    filter: blur(6px);
     border-radius: 50%;
   }
 
   /* Hint */
   .hint {
     margin-top: auto;
-    font-size: 0.5rem;
-    animation: pulse 2s ease-in-out infinite;
+    font-size: 0.45rem;
+    text-align: center;
+    padding: 0 1rem;
   }
 
-  @keyframes pulse {
-    0%, 100% { opacity: 0.5; }
-    50% { opacity: 1; }
+  /* Loading overlay */
+  .loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 400;
+    background: rgba(26, 26, 46, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   /* Object overlay */
@@ -294,5 +557,24 @@
   @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
+  }
+
+  /* Mobile adjustments */
+  @media (max-width: 600px) {
+    .main-content {
+      padding: 1rem;
+    }
+
+    .site-header h1 {
+      font-size: 1.1rem;
+    }
+
+    .shelf-container {
+      padding: 1rem !important;
+    }
+
+    .item-icon {
+      font-size: 2rem;
+    }
   }
 </style>

@@ -1,4 +1,7 @@
 <script lang="ts">
+  import CloseButton from '$lib/components/CloseButton.svelte';
+  import { playSound } from '$lib/stores/audio';
+
   interface Props {
     onClose: () => void;
   }
@@ -84,6 +87,7 @@
   }
 
   function travel() {
+    playSound('wagon', 0.3);
     // Calculate miles based on pace and oxen
     const paceMultiplier = game.pace === 'steady' ? 1 : game.pace === 'strenuous' ? 1.5 : 2;
     const milesPerDay = 15 * paceMultiplier * Math.min(game.oxen, 2);
@@ -124,8 +128,10 @@
 
   function checkEndConditions() {
     if (game.health <= 0) {
+      playSound('death');
       game.screen = 'dead';
     } else if (game.miles >= TOTAL_MILES) {
+      playSound('victory');
       game.screen = 'win';
     }
   }
@@ -160,7 +166,7 @@
 </script>
 
 <div class="oregon-trail">
-  <button class="close-btn" onclick={onClose}>✕</button>
+  <CloseButton {onClose} />
 
   <div class="game-screen">
     {#if game.screen === 'title'}
@@ -342,32 +348,39 @@
   }
 
   .ascii-art {
-    font-size: 6px;
+    font-size: 8px;
     line-height: 1.2;
     margin-bottom: 20px;
     color: #00ff00;
+    display: none; /* Hide unreadable ASCII on mobile */
+  }
+
+  @media (min-width: 600px) {
+    .ascii-art {
+      display: block;
+    }
   }
 
   h1 {
-    font-size: 1rem;
+    font-size: 1.2rem;
     margin-bottom: 10px;
   }
 
   h2 {
-    font-size: 0.7rem;
+    font-size: 0.9rem;
     margin-bottom: 20px;
   }
 
   .subtitle {
-    font-size: 0.5rem;
+    font-size: 0.7rem;
     margin-bottom: 30px;
     color: #00aa00;
   }
 
   .game-btn {
-    padding: 12px 24px;
+    padding: 14px 28px;
     font-family: inherit;
-    font-size: 0.6rem;
+    font-size: 0.75rem;
     background: #003300;
     color: #00ff00;
     border: 2px solid #00ff00;
@@ -418,9 +431,9 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px;
+    padding: 10px;
     border-bottom: 1px solid #003300;
-    font-size: 0.5rem;
+    font-size: 0.65rem;
   }
 
   .store-item button {
@@ -493,7 +506,7 @@
 
   .stats {
     margin: 15px 0;
-    font-size: 0.5rem;
+    font-size: 0.7rem;
   }
 
   .stat-row {
@@ -523,18 +536,18 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.4rem;
+    font-size: 0.6rem;
     color: #00ff00;
     mix-blend-mode: difference;
   }
 
   .pace-selector {
     display: flex;
-    gap: 10px;
+    gap: 12px;
     justify-content: center;
     align-items: center;
     margin: 15px 0;
-    font-size: 0.4rem;
+    font-size: 0.6rem;
     flex-wrap: wrap;
   }
 

@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
+  import CloseButton from '$lib/components/CloseButton.svelte';
+  import { playSound } from '$lib/stores/audio';
 
   interface Props {
     onClose: () => void;
@@ -307,7 +309,7 @@
 </script>
 
 <div class="koosh-experience">
-  <button class="close-btn" onclick={onClose}>✕</button>
+  <CloseButton {onClose} />
 
   <canvas
     bind:this={canvas}

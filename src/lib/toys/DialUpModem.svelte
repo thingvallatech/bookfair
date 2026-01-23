@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { Howl } from 'howler';
+  import CloseButton from '$lib/components/CloseButton.svelte';
+  import { playSound } from '$lib/stores/audio';
 
   interface Props {
     onClose: () => void;
@@ -105,7 +107,7 @@
 </script>
 
 <div class="modem-experience">
-  <button class="close-btn" onclick={handleClose}>✕</button>
+  <CloseButton onClose={handleClose} />
 
   <div class="modem-container">
     <!-- Big chunky modem -->

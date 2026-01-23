@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import CloseButton from '$lib/components/CloseButton.svelte';
+  import { playSound } from '$lib/stores/audio';
 
   interface Props {
     onClose: () => void;
@@ -98,6 +100,7 @@
 
   function executeSlam() {
     isSlammed = true;
+    playSound('slam');
 
     // Calculate flipped pogs based on power
     const flipChance = slamPower / 100;
@@ -148,7 +151,7 @@
 </script>
 
 <div class="pog-tube">
-  <button class="close-btn" onclick={onClose}>✕</button>
+  <CloseButton {onClose} />
 
   <header class="header">
     <h1>POG COLLECTION</h1>

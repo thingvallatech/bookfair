@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import CloseButton from '$lib/components/CloseButton.svelte';
+  import { playSound } from '$lib/stores/audio';
 
   interface Props {
     onClose: () => void;
@@ -109,7 +111,7 @@
 </script>
 
 <div class="clippy-land">
-  <button class="close-btn" onclick={onClose}>✕</button>
+  <CloseButton {onClose} />
 
   <div class="desktop">
     <div class="desktop-icons">

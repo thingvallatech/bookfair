@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
+  import CloseButton from '$lib/components/CloseButton.svelte';
+  import { playSound } from '$lib/stores/audio';
 
   interface Props {
     onClose: () => void;
@@ -86,13 +88,14 @@
     const elapsed = (now - pet.lastUpdate) / 1000; // seconds
     const hours = elapsed / 3600;
 
-    // Decay stats over time (slower decay)
-    pet.hunger = Math.max(0, pet.hunger - hours * 5);
-    pet.happiness = Math.max(0, pet.happiness - hours * 3);
-    pet.energy = Math.min(100, pet.energy + hours * 2); // Energy recovers
+    // Decay stats over time - MUCH slower so pet survives overnight
+    // ~2% hunger per hour, ~1% happiness per hour
+    pet.hunger = Math.max(0, pet.hunger - hours * 2);
+    pet.happiness = Math.max(0, pet.happiness - hours * 1);
+    pet.energy = Math.min(100, pet.energy + hours * 3); // Energy recovers faster
 
-    // Add poops over time
-    pet.poops = Math.min(5, pet.poops + Math.floor(hours));
+    // Add poops over time (1 per 4 hours max)
+    pet.poops = Math.min(5, pet.poops + Math.floor(hours / 4));
 
     // Age up
     const totalHours = (now - pet.born) / 3600000;
@@ -104,9 +107,14 @@
 
     pet.age = Math.floor(totalHours / 24);
 
-    // Check death
-    if (pet.hunger <= 0 || pet.happiness <= 0) {
+    // Check death - only if BOTH hunger and happiness are critically low
+    // This gives more warning and is less punishing
+    if (pet.hunger <= 0 && pet.happiness <= 20) {
       pet.isDead = true;
+      playSound('sad');
+    } else if (pet.happiness <= 0 && pet.hunger <= 20) {
+      pet.isDead = true;
+      playSound('sad');
     }
 
     pet.lastUpdate = now;
@@ -121,18 +129,22 @@
 
     switch (action) {
       case 'feed':
+        playSound('eat');
         pet.hunger = Math.min(100, pet.hunger + 30);
         pet.energy = Math.max(0, pet.energy - 5);
         break;
       case 'play':
+        playSound('happy');
         pet.happiness = Math.min(100, pet.happiness + 25);
         pet.energy = Math.max(0, pet.energy - 15);
         pet.hunger = Math.max(0, pet.hunger - 10);
         break;
       case 'sleep':
+        playSound('ding', 0.3);
         pet.energy = Math.min(100, pet.energy + 40);
         break;
       case 'clean':
+        playSound('whoosh', 0.4);
         pet.poops = 0;
         pet.happiness = Math.min(100, pet.happiness + 10);
         break;
@@ -156,12 +168,16 @@
   function getMood(): string {
     if (!pet) return '';
     if (pet.isDead) return 'Gone to a better place...';
-    if (pet.hunger < 20) return 'So hungry...';
-    if (pet.happiness < 20) return 'Very sad...';
-    if (pet.energy < 20) return 'Exhausted...';
-    if (pet.poops >= 3) return 'It stinks in here!';
-    if (pet.hunger > 80 && pet.happiness > 80) return 'So happy!';
-    return 'Doing okay!';
+    // Critical warning - about to die
+    if (pet.hunger < 10 || pet.happiness < 10) return '⚠️ CRITICAL! Need care NOW!';
+    if (pet.hunger < 20) return '😰 So hungry...';
+    if (pet.happiness < 20) return '😢 Very sad...';
+    if (pet.energy < 20) return '😴 Exhausted...';
+    if (pet.poops >= 4) return '🤢 It stinks in here!';
+    if (pet.poops >= 2) return '💩 Needs cleaning...';
+    if (pet.hunger > 80 && pet.happiness > 80) return '😊 So happy!';
+    if (pet.hunger > 60 && pet.happiness > 60) return '🙂 Doing great!';
+    return '😐 Doing okay';
   }
 
   let animationInterval: number;
@@ -189,7 +205,7 @@
 </script>
 
 <div class="tamagotchi">
-  <button class="close-btn" onclick={onClose}>✕</button>
+  <CloseButton {onClose} variant="light" />
 
   <div class="device">
     <div class="device-top">
@@ -321,20 +337,6 @@
     font-family: 'Press Start 2P', monospace;
   }
 
-  .close-btn {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: rgba(0, 0, 0, 0.2);
-    border: 2px solid rgba(255, 255, 255, 0.5);
-    color: white;
-    font-size: 18px;
-    cursor: pointer;
-    z-index: 100;
-  }
 
   .device {
     width: 220px;

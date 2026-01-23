@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
+  import CloseButton from '$lib/components/CloseButton.svelte';
+  import { playSound } from '$lib/stores/audio';
 
   interface Props {
     onClose: () => void;
@@ -12,14 +14,18 @@
   let animationId: number;
   let audioContext: AudioContext | null = null;
   let analyser: AnalyserNode | null = null;
+  let gainNode: GainNode | null = null;
+  let audioElement: HTMLAudioElement | null = null;
+  let sourceNode: MediaElementAudioSourceNode | null = null;
   let dataArray: Uint8Array;
 
   let isPlaying = $state(false);
+  let isLoading = $state(false);
   let currentSkin = $state(0);
   let visualizerMode = $state<'bars' | 'wave' | 'circle'>('bars');
   let volume = $state(75);
   let trackTime = $state(0);
-  let trackDuration = $state(180); // Fake 3 min track
+  let trackDuration = $state(150);
 
   const skins = [
     { name: 'Classic', bg: '#232323', accent: '#00ff00', text: '#00ff00' },
@@ -28,22 +34,45 @@
     { name: 'Matrix', bg: '#000a00', accent: '#00ff41', text: '#00ff41' },
   ];
 
+  // Free royalty-free music from various sources
   const playlist = [
-    { title: 'Smash Mouth - All Star', duration: '3:21' },
-    { title: 'Chumbawamba - Tubthumping', duration: '3:32' },
-    { title: 'Len - Steal My Sunshine', duration: '4:01' },
-    { title: 'Third Eye Blind - Semi-Charmed', duration: '4:27' },
-    { title: 'Fastball - The Way', duration: '4:18' },
+    {
+      title: 'Lofi Study Beats',
+      duration: '2:30',
+      // Free lofi from Pixabay
+      url: 'https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3'
+    },
+    {
+      title: 'Chill Synthwave',
+      duration: '2:15',
+      url: 'https://cdn.pixabay.com/audio/2022/03/10/audio_c8c8a73467.mp3'
+    },
+    {
+      title: 'Retro Gaming',
+      duration: '1:45',
+      url: 'https://cdn.pixabay.com/audio/2022/03/15/audio_8cb749d484.mp3'
+    },
+    {
+      title: '8-Bit Adventure',
+      duration: '2:00',
+      url: 'https://cdn.pixabay.com/audio/2021/11/01/audio_5fc1f1e8c4.mp3'
+    },
+    {
+      title: 'Peaceful Piano',
+      duration: '3:00',
+      url: 'https://cdn.pixabay.com/audio/2022/08/02/audio_884fe92c21.mp3'
+    },
   ];
 
   let currentTrack = $state(0);
 
+  // Volume changes
   $effect(() => {
-    if (isPlaying) {
-      const interval = setInterval(() => {
-        trackTime = (trackTime + 1) % trackDuration;
-      }, 1000);
-      return () => clearInterval(interval);
+    if (audioElement) {
+      audioElement.volume = volume / 100;
+    }
+    if (gainNode) {
+      gainNode.gain.value = volume / 100;
     }
   });
 
@@ -53,55 +82,103 @@
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   }
 
-  function togglePlay() {
-    isPlaying = !isPlaying;
+  async function togglePlay() {
+    if (!audioContext) {
+      await initAudio();
+    }
 
-    if (isPlaying && !audioContext) {
-      initAudio();
+    if (isPlaying) {
+      audioElement?.pause();
+      isPlaying = false;
+    } else {
+      await loadAndPlayTrack(currentTrack);
     }
   }
 
-  function prevTrack() {
+  async function prevTrack() {
     currentTrack = (currentTrack - 1 + playlist.length) % playlist.length;
     trackTime = 0;
+    if (isPlaying) {
+      await loadAndPlayTrack(currentTrack);
+    }
   }
 
-  function nextTrack() {
+  async function nextTrack() {
     currentTrack = (currentTrack + 1) % playlist.length;
     trackTime = 0;
+    if (isPlaying) {
+      await loadAndPlayTrack(currentTrack);
+    }
   }
 
-  function initAudio() {
+  async function initAudio() {
     try {
       audioContext = new AudioContext();
       analyser = audioContext.createAnalyser();
       analyser.fftSize = 256;
 
-      // Create oscillator for demo sound (very quiet)
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      gainNode.gain.value = 0.01; // Very quiet
+      gainNode = audioContext.createGain();
+      gainNode.gain.value = volume / 100;
 
-      oscillator.connect(gainNode);
-      gainNode.connect(analyser);
-      analyser.connect(audioContext.destination);
-
-      // Frequency modulation for variation
-      oscillator.type = 'sawtooth';
-      oscillator.frequency.value = 110;
-      oscillator.start();
-
-      // Modulate for visual interest
-      setInterval(() => {
-        if (isPlaying && oscillator) {
-          oscillator.frequency.value = 80 + Math.random() * 200;
-        }
-      }, 200);
+      analyser.connect(gainNode);
+      gainNode.connect(audioContext.destination);
 
       dataArray = new Uint8Array(analyser.frequencyBinCount);
     } catch (e) {
-      // Audio not supported, use fake data
+      console.error('Audio init failed:', e);
       dataArray = new Uint8Array(128);
+    }
+  }
+
+  async function loadAndPlayTrack(index: number) {
+    if (!audioContext || !analyser || !gainNode) return;
+
+    isLoading = true;
+    const track = playlist[index];
+
+    try {
+      // Stop existing audio
+      if (audioElement) {
+        audioElement.pause();
+        audioElement.src = '';
+      }
+
+      // Create new audio element
+      audioElement = new Audio();
+      audioElement.crossOrigin = 'anonymous';
+      audioElement.src = track.url;
+      audioElement.volume = volume / 100;
+
+      // Connect to analyser
+      if (sourceNode) {
+        sourceNode.disconnect();
+      }
+      sourceNode = audioContext.createMediaElementSource(audioElement);
+      sourceNode.connect(analyser);
+
+      // Handle track end
+      audioElement.onended = () => {
+        nextTrack();
+      };
+
+      // Update duration when metadata loads
+      audioElement.onloadedmetadata = () => {
+        trackDuration = Math.floor(audioElement!.duration);
+      };
+
+      // Update time display
+      audioElement.ontimeupdate = () => {
+        trackTime = Math.floor(audioElement!.currentTime);
+      };
+
+      await audioElement.play();
+      isPlaying = true;
+      isLoading = false;
+    } catch (e) {
+      console.error('Failed to play track:', e);
+      isLoading = false;
+      // Fall back to visualizer-only mode
+      isPlaying = true;
     }
   }
 
@@ -203,12 +280,16 @@
 
   onDestroy(() => {
     if (animationId) cancelAnimationFrame(animationId);
+    if (audioElement) {
+      audioElement.pause();
+      audioElement.src = '';
+    }
     if (audioContext) audioContext.close();
   });
 </script>
 
 <div class="winamp" style="--bg: {skins[currentSkin].bg}; --accent: {skins[currentSkin].accent}; --text: {skins[currentSkin].text}">
-  <button class="close-btn" onclick={onClose}>✕</button>
+  <CloseButton {onClose} />
 
   <!-- Title bar -->
   <div class="title-bar">
@@ -246,10 +327,10 @@
     <!-- Controls -->
     <div class="controls">
       <button class="ctrl-btn" onclick={prevTrack}>⏮</button>
-      <button class="ctrl-btn play" onclick={togglePlay}>
-        {isPlaying ? '⏸' : '▶'}
+      <button class="ctrl-btn play" onclick={togglePlay} disabled={isLoading}>
+        {isLoading ? '⏳' : isPlaying ? '⏸' : '▶'}
       </button>
-      <button class="ctrl-btn" onclick={() => { isPlaying = false; trackTime = 0; }}>⏹</button>
+      <button class="ctrl-btn" onclick={() => { if (audioElement) { audioElement.pause(); audioElement.currentTime = 0; } isPlaying = false; trackTime = 0; }}>⏹</button>
       <button class="ctrl-btn" onclick={nextTrack}>⏭</button>
 
       <div class="volume-control">

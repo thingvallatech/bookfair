@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
+  import CloseButton from '$lib/components/CloseButton.svelte';
+  import { playSound, playRandomSound } from '$lib/stores/audio';
 
   interface Props {
     onClose: () => void;
@@ -75,15 +77,24 @@
 
   function startDrawing(e: MouseEvent | TouchEvent) {
     if (currentTool === 'stamp') {
+      playSound('stamp');
       const pos = getPos(e);
       drawStamp(pos.x, pos.y);
       return;
     }
 
     if (currentTool === 'fill') {
+      playSound('pop');
       const pos = getPos(e);
       floodFill(Math.floor(pos.x), Math.floor(pos.y));
       return;
+    }
+
+    // Play sound based on tool
+    if (currentTool === 'spray') {
+      playSound('spray', 0.3);
+    } else if (currentTool === 'eraser') {
+      playSound('erase', 0.2);
     }
 
     isDrawing = true;
@@ -215,11 +226,13 @@
   }
 
   function clearCanvas() {
+    playSound('explode');
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
   function selectTool(tool: typeof currentTool) {
+    playSound('click', 0.3);
     currentTool = tool;
   }
 
@@ -235,7 +248,7 @@
 </script>
 
 <div class="kidpix">
-  <button class="close-btn" onclick={onClose}>✕</button>
+  <CloseButton {onClose} />
 
   <!-- Top toolbar -->
   <div class="toolbar top-toolbar">
