@@ -40,12 +40,21 @@
     isConnecting = true;
     progress = 0;
 
-    // Create and play the dial-up sound
-    // Using a publicly available dial-up sound
+    // Create and play the dial-up sound from local file
     sound = new Howl({
-      src: ['https://www.soundjay.com/communication/sounds/dial-up-modem-01.mp3'],
+      src: ['/sounds/dialup.mp3'],
       html5: true,
       volume: 0.7,
+      onloaderror: (id, err) => {
+        console.warn('Dial-up sound failed to load:', err);
+      },
+      onplayerror: (id, err) => {
+        console.warn('Dial-up sound failed to play:', err);
+        // Try to unlock and replay on mobile
+        sound?.once('unlock', () => {
+          sound?.play();
+        });
+      },
       onend: () => {
         if (!isConnected) {
           isConnected = true;
@@ -116,8 +125,13 @@
   <CloseButton onClose={handleClose} />
 
   <div class="modem-container">
-    <!-- Big chunky modem -->
-    <div class="modem-unit">
+    <!-- Big chunky modem - clickable when not connecting -->
+    <button
+      class="modem-unit"
+      class:clickable={!isConnecting && !isConnected}
+      onclick={startConnection}
+      disabled={isConnecting || isConnected}
+    >
       <div class="modem-top">
         <div class="brand">US Robotics</div>
         <div class="model">Sportster 56K</div>
@@ -151,7 +165,11 @@
           {/each}
         </div>
       </div>
-    </div>
+
+      {#if !isConnecting && !isConnected}
+        <span class="connect-hint">Click to dial</span>
+      {/if}
+    </button>
 
     <!-- Connection status display -->
     <div class="status-display">
@@ -180,12 +198,7 @@
       </div>
     </div>
 
-    <!-- Click to connect button (the modem itself) -->
-    {#if !isConnecting && !isConnected}
-      <button class="connect-area" onclick={startConnection}>
-        <span class="connect-hint">Click to dial</span>
-      </button>
-    {:else if isConnected}
+    {#if isConnected}
       <button class="disconnect-btn" onclick={disconnect}>
         Hang Up
       </button>
@@ -243,7 +256,7 @@
     gap: 24px;
   }
 
-  /* The physical modem unit */
+  /* The physical modem unit - now a button */
   .modem-unit {
     width: 400px;
     height: 80px;
@@ -256,6 +269,33 @@
     display: flex;
     flex-direction: column;
     padding: 8px 16px;
+    position: relative;
+    cursor: default;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+
+  .modem-unit.clickable {
+    cursor: pointer;
+  }
+
+  .modem-unit.clickable:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 8px 16px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  }
+
+  .modem-unit.clickable:hover .connect-hint {
+    opacity: 1;
+  }
+
+  .modem-unit.clickable:active {
+    transform: translateY(0);
+  }
+
+  .modem-unit:disabled {
+    cursor: default;
   }
 
   .modem-top {
@@ -454,25 +494,13 @@
     margin-top: 16px;
   }
 
-  /* Interaction */
-  .connect-area {
+  /* Connect hint tooltip */
+  .connect-hint {
     position: absolute;
-    top: 0;
+    bottom: -40px;
     left: 50%;
     transform: translateX(-50%);
-    width: 400px;
-    height: 80px;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    padding-bottom: 100px;
-  }
-
-  .connect-hint {
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.95);
     color: #333;
     padding: 8px 16px;
     border-radius: 4px;
@@ -480,10 +508,8 @@
     font-weight: bold;
     opacity: 0;
     transition: opacity 0.3s;
-  }
-
-  .connect-area:hover .connect-hint {
-    opacity: 1;
+    white-space: nowrap;
+    pointer-events: none;
   }
 
   .disconnect-btn {
