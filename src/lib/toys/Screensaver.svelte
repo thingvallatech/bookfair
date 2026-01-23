@@ -333,19 +333,19 @@
   <canvas bind:this={canvas}></canvas>
 
   <div class="mode-selector">
-    <button class:active={mode === 'toasters'} onclick={() => mode = 'toasters'}>
+    <button class:active={mode === 'toasters'} onclick={() => { playSound('click', 0.3); mode = 'toasters'; }}>
       🍞 Flying Toasters
     </button>
-    <button class:active={mode === 'pipes'} onclick={() => mode = 'pipes'}>
+    <button class:active={mode === 'pipes'} onclick={() => { playSound('click', 0.3); mode = 'pipes'; }}>
       🔧 3D Pipes
     </button>
-    <button class:active={mode === 'dvd'} onclick={() => mode = 'dvd'}>
+    <button class:active={mode === 'dvd'} onclick={() => { playSound('click', 0.3); mode = 'dvd'; }}>
       📀 DVD Bounce
     </button>
-    <button class:active={mode === 'matrix'} onclick={() => mode = 'matrix'}>
+    <button class:active={mode === 'matrix'} onclick={() => { playSound('click', 0.3); mode = 'matrix'; }}>
       💚 Matrix
     </button>
-    <button class:active={mode === 'starfield'} onclick={() => mode = 'starfield'}>
+    <button class:active={mode === 'starfield'} onclick={() => { playSound('click', 0.3); mode = 'starfield'; }}>
       ⭐ Starfield
     </button>
   </div>

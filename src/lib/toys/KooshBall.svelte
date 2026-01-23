@@ -160,21 +160,25 @@
       ball.x = margin;
       ball.vx *= -BOUNCE;
       ball.squishVel = Math.abs(ball.vx) * 0.1;
+      if (Math.abs(ball.vx) > 3) playSound('pop', 0.3);
     }
     if (ball.x > canvas.width - margin) {
       ball.x = canvas.width - margin;
       ball.vx *= -BOUNCE;
       ball.squishVel = Math.abs(ball.vx) * 0.1;
+      if (Math.abs(ball.vx) > 3) playSound('pop', 0.3);
     }
     if (ball.y < margin) {
       ball.y = margin;
       ball.vy *= -BOUNCE;
       ball.squishVel = Math.abs(ball.vy) * 0.1;
+      if (Math.abs(ball.vy) > 3) playSound('pop', 0.3);
     }
     if (ball.y > canvas.height - margin) {
       ball.y = canvas.height - margin;
       ball.vy *= -BOUNCE;
       ball.squishVel = Math.abs(ball.vy) * 0.1;
+      if (Math.abs(ball.vy) > 3) playSound('pop', 0.3);
     }
 
     // Squish spring

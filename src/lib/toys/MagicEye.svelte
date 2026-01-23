@@ -230,12 +230,14 @@
   }
 
   function nextShape() {
+    playSound('click', 0.3);
     currentShape = (currentShape + 1) % shapes.length;
     patternSeed = Date.now();
     generateStereogram();
   }
 
   function newPattern() {
+    playSound('whoosh', 0.3);
     patternSeed = Date.now();
     generateStereogram();
   }

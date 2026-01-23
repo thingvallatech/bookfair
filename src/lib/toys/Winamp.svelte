@@ -517,13 +517,14 @@
   }
 
   .ctrl-btn {
-    width: 32px;
-    height: 24px;
+    width: 44px;
+    height: 44px;
     background: linear-gradient(180deg, #555 0%, #333 100%);
     border: 2px outset #666;
     color: var(--text);
-    font-size: 0.6rem;
+    font-size: 1rem;
     cursor: pointer;
+    border-radius: 4px;
   }
 
   .ctrl-btn:active {
@@ -531,7 +532,7 @@
   }
 
   .ctrl-btn.play {
-    width: 40px;
+    width: 52px;
     background: linear-gradient(180deg, var(--accent) 0%, #333 100%);
   }
 

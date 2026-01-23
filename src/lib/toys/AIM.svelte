@@ -83,6 +83,8 @@
   function sendMessage() {
     if (!messageInput.trim() || !selectedBuddy) return;
 
+    playSound('whoosh', 0.3);
+
     chatMessages = [...chatMessages, {
       from: 'You',
       text: messageInput,
@@ -95,6 +97,7 @@
     // Auto-reply after delay
     setTimeout(() => {
       if (selectedBuddy) {
+        playSound('ding', 0.5);
         chatMessages = [...chatMessages, {
           from: selectedBuddy.name,
           text: getAutoReply(userMsg),

@@ -161,7 +161,7 @@
 
     <div class="control-group">
       <label>Pattern:</label>
-      <select bind:value={pattern}>
+      <select bind:value={pattern} onchange={() => playSound('pop', 0.3)}>
         <option value="dolphins">🐬 Dolphins</option>
         <option value="rainbows">🌈 Rainbows</option>
         <option value="hearts">💖 Hearts</option>

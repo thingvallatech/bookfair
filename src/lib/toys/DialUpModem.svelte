@@ -23,6 +23,7 @@
 
   let sound: Howl | null = null;
   let connectionTimeout: ReturnType<typeof setTimeout>;
+  let progressInterval: ReturnType<typeof setInterval> | null = null;
 
   // The dial-up connection phases
   const phases = [
@@ -72,11 +73,12 @@
     });
 
     // Progress bar animation
-    const progressInterval = setInterval(() => {
+    progressInterval = setInterval(() => {
       if (progress < 100) {
         progress += 0.5;
       } else {
-        clearInterval(progressInterval);
+        if (progressInterval) clearInterval(progressInterval);
+        progressInterval = null;
       }
     }, 120);
   }
@@ -86,6 +88,10 @@
       sound.stop();
       sound.unload();
       sound = null;
+    }
+    if (progressInterval) {
+      clearInterval(progressInterval);
+      progressInterval = null;
     }
     isConnecting = false;
     isConnected = false;

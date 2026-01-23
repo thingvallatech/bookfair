@@ -62,6 +62,7 @@
 
   function nextTip() {
     isAnimating = true;
+    playSound('pop', 0.2);
     setTimeout(() => {
       currentTip = (currentTip + 1) % tips.length;
       isAnimating = false;
@@ -83,6 +84,7 @@
   function submitQuestion() {
     if (!userInput.trim()) return;
 
+    playSound('ding', 0.3);
     clipbyResponse = getResponse(userInput);
     showResponse = true;
     userInput = '';

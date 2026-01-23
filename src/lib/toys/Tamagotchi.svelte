@@ -557,12 +557,12 @@
   }
 
   .device-btn {
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%);
     border: 3px solid #92400e;
-    font-size: 14px;
+    font-size: 16px;
     cursor: pointer;
     box-shadow: 0 4px 0 #78350f;
     transition: all 0.1s;
