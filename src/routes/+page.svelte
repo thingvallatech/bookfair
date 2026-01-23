@@ -4,6 +4,7 @@
   import KooshBall from '$lib/toys/KooshBall.svelte';
   import KidPix from '$lib/toys/KidPix.svelte';
   import PogTube from '$lib/toys/PogTube.svelte';
+  import Winamp from '$lib/toys/Winamp.svelte';
 
   // Which object is currently "open" (fullscreen experience)
   let activeObject = $state<string | null>(null);
@@ -14,6 +15,7 @@
     { id: 'koosh', name: 'Koosh Ball', icon: '🔴' },
     { id: 'kidpix', name: 'Kid Pix', icon: '🎨' },
     { id: 'pogs', name: 'Pog Tube', icon: '🪙' },
+    { id: 'winamp', name: 'Winamp', icon: '🎵' },
   ];
 
   function openObject(id: string) {
@@ -92,6 +94,10 @@
 {:else if activeObject === 'pogs'}
   <div class="object-view">
     <PogTube onClose={closeObject} />
+  </div>
+{:else if activeObject === 'winamp'}
+  <div class="object-view">
+    <Winamp onClose={closeObject} />
   </div>
 {/if}
 
