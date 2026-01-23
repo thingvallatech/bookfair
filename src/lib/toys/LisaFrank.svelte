@@ -270,11 +270,13 @@
   }
 
   .control-group select {
-    padding: 6px 12px;
+    padding: 12px 16px;
+    min-height: 44px;
     border-radius: 10px;
     border: 2px solid #ff69b4;
     background: white;
     font-family: inherit;
+    font-size: 14px;
     cursor: pointer;
   }
 

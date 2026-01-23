@@ -408,11 +408,11 @@
     background: transparent;
     border: 2px solid #666;
     color: #888;
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 16px;
     transition: all 0.2s;
   }
 

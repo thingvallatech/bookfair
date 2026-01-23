@@ -437,13 +437,14 @@
   }
 
   .store-item button {
-    padding: 4px 12px;
+    padding: 12px 20px;
     font-family: inherit;
-    font-size: 0.4rem;
+    font-size: 0.55rem;
     background: #003300;
     color: #00ff00;
-    border: 1px solid #00ff00;
+    border: 2px solid #00ff00;
     cursor: pointer;
+    min-height: 44px;
   }
 
   .store-item button:hover {

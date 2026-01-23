@@ -539,14 +539,14 @@
     }
 
     .tool-btn {
-      width: 36px;
-      height: 36px;
-      font-size: 16px;
+      width: 44px;
+      height: 44px;
+      font-size: 18px;
     }
 
     .color-btn {
-      width: 24px;
-      height: 24px;
+      width: 32px;
+      height: 32px;
     }
 
     .size-control {

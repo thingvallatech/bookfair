@@ -398,10 +398,11 @@
   }
 
   .bubble-buttons button {
-    padding: 4px 12px;
-    font-size: 11px;
+    padding: 10px 16px;
+    min-height: 44px;
+    font-size: 12px;
     background: #e0e0e0;
-    border: 1px solid #999;
+    border: 2px solid #999;
     cursor: pointer;
   }
 
@@ -443,17 +444,19 @@
 
   .ask-body input {
     width: 100%;
-    padding: 8px;
-    border: 1px solid #999;
+    padding: 12px;
+    min-height: 44px;
+    border: 2px solid #999;
     margin-bottom: 12px;
-    font-size: 12px;
+    font-size: 14px;
   }
 
   .ask-body button {
-    padding: 6px 20px;
-    font-size: 11px;
+    padding: 12px 24px;
+    min-height: 44px;
+    font-size: 12px;
     background: #e0e0e0;
-    border: 1px solid #999;
+    border: 2px solid #999;
     cursor: pointer;
   }
 

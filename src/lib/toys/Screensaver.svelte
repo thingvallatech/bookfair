@@ -393,12 +393,13 @@
   }
 
   .mode-selector button {
-    padding: 8px 16px;
+    padding: 12px 16px;
+    min-height: 44px;
     font-family: 'Press Start 2P', monospace;
-    font-size: 0.4rem;
+    font-size: 0.45rem;
     background: transparent;
     color: #888;
-    border: 1px solid #444;
+    border: 2px solid #444;
     cursor: pointer;
     transition: all 0.2s;
     white-space: nowrap;
@@ -417,8 +418,8 @@
 
   @media (max-width: 600px) {
     .mode-selector button {
-      padding: 6px 10px;
-      font-size: 0.35rem;
+      padding: 10px 14px;
+      font-size: 0.4rem;
     }
   }
 </style>

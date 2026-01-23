@@ -430,9 +430,10 @@
   }
 
   .buttons button {
-    padding: 10px 16px;
+    padding: 12px 20px;
+    min-height: 44px;
     font-family: inherit;
-    font-size: 0.45rem;
+    font-size: 0.55rem;
     background: transparent;
     color: #00ff88;
     border: 2px solid #00ff88;

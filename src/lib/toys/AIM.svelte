@@ -394,7 +394,8 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 4px 8px;
+    padding: 10px 12px;
+    min-height: 44px;
     width: 100%;
     background: none;
     border: none;
