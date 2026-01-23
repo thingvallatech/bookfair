@@ -6,6 +6,8 @@
   import PogTube from '$lib/toys/PogTube.svelte';
   import Winamp from '$lib/toys/Winamp.svelte';
   import AIM from '$lib/toys/AIM.svelte';
+  import Tamagotchi from '$lib/toys/Tamagotchi.svelte';
+  import MagicEye from '$lib/toys/MagicEye.svelte';
 
   // Which object is currently "open" (fullscreen experience)
   let activeObject = $state<string | null>(null);
@@ -18,6 +20,8 @@
     { id: 'pogs', name: 'Pog Tube', icon: '🪙' },
     { id: 'winamp', name: 'Winamp', icon: '🎵' },
     { id: 'aim', name: 'AIM', icon: '💬' },
+    { id: 'tamagotchi', name: 'Tamagotchi', icon: '🐣' },
+    { id: 'magiceye', name: 'Magic Eye', icon: '👁️' },
   ];
 
   function openObject(id: string) {
@@ -104,6 +108,14 @@
 {:else if activeObject === 'aim'}
   <div class="object-view">
     <AIM onClose={closeObject} />
+  </div>
+{:else if activeObject === 'tamagotchi'}
+  <div class="object-view">
+    <Tamagotchi onClose={closeObject} />
+  </div>
+{:else if activeObject === 'magiceye'}
+  <div class="object-view">
+    <MagicEye onClose={closeObject} />
   </div>
 {/if}
 
