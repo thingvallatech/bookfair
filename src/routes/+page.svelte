@@ -2,6 +2,7 @@
   import RetroBackground from '$lib/components/RetroBackground.svelte';
   import DialUpModem from '$lib/toys/DialUpModem.svelte';
   import KooshBall from '$lib/toys/KooshBall.svelte';
+  import KidPix from '$lib/toys/KidPix.svelte';
 
   // Which object is currently "open" (fullscreen experience)
   let activeObject = $state<string | null>(null);
@@ -10,7 +11,7 @@
   const shelfObjects = [
     { id: 'modem', name: 'Dial-Up Modem', icon: '📠' },
     { id: 'koosh', name: 'Koosh Ball', icon: '🔴' },
-    { id: 'kidpix', name: 'Kid Pix', icon: '🎨', comingSoon: true },
+    { id: 'kidpix', name: 'Kid Pix', icon: '🎨' },
     { id: 'pogs', name: 'Pog Tube', icon: '🪙', comingSoon: true },
   ];
 
@@ -82,6 +83,10 @@
 {:else if activeObject === 'koosh'}
   <div class="object-view">
     <KooshBall onClose={closeObject} />
+  </div>
+{:else if activeObject === 'kidpix'}
+  <div class="object-view">
+    <KidPix onClose={closeObject} />
   </div>
 {/if}
 
