@@ -169,8 +169,8 @@
     food = [...food, {
       x,
       y: 20,
-      vy: 0.5 + Math.random() * 0.5,
-      size: 3
+      vy: 0.3 + Math.random() * 0.3,
+      size: 6
     }];
 
     foodCount--;
@@ -419,11 +419,24 @@
       ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
     }
 
-    // Food
-    ctx.fillStyle = '#e74c3c';
+    // Food - bright orange pellets with glow
     for (const f of food) {
+      // Glow
+      ctx.fillStyle = 'rgba(255, 200, 100, 0.4)';
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, f.size * 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Pellet
+      ctx.fillStyle = '#ff8c00';
       ctx.beginPath();
       ctx.arc(f.x, f.y, f.size, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Highlight
+      ctx.fillStyle = '#ffcc00';
+      ctx.beginPath();
+      ctx.arc(f.x - f.size * 0.3, f.y - f.size * 0.3, f.size * 0.4, 0, Math.PI * 2);
       ctx.fill();
     }
 

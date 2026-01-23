@@ -9,33 +9,33 @@
 
   let { onClose }: Props = $props();
 
-  // All possible beanie babies with rarity
+  // All possible beanie babies with rarity - using real images from beaniepedia.com
   const ALL_BEANIES = [
     // Common (50% chance)
-    { name: 'Spot', animal: 'Dog', birthday: 'January 3, 1993', poem: 'See Spot run, see Spot play / See Spot brighten up your day', rarity: 'common', color: '#f4a460' },
-    { name: 'Squealer', animal: 'Pig', birthday: 'April 23, 1993', poem: 'Squealer likes to oink and roll / Around the farm and in the bowl', rarity: 'common', color: '#ffb6c1' },
-    { name: 'Legs', animal: 'Frog', birthday: 'April 25, 1993', poem: 'Legs lives in a lily pad / The cutest little frog you ever had', rarity: 'common', color: '#90ee90' },
-    { name: 'Flash', animal: 'Dolphin', birthday: 'May 13, 1993', poem: 'Flash the dolphin swims so fast / She always comes in first not last', rarity: 'common', color: '#87ceeb' },
-    { name: 'Chocolate', animal: 'Moose', birthday: 'April 27, 1993', poem: 'Licorice, candy and you know what? / Chocolate is the name of this cute moose', rarity: 'common', color: '#8b4513' },
-    { name: 'Pinky', animal: 'Flamingo', birthday: 'February 13, 1995', poem: 'Pinky loves the Everglades / From the hottest pink she never fades', rarity: 'common', color: '#ff69b4' },
+    { name: 'Spot', animal: 'Dog', image: 'https://i0.wp.com/beaniepedia.com/beanies/files/2023/02/spotwpotbboc.jpg?fit=300%2C300&ssl=1', birthday: 'January 3, 1993', poem: 'See Spot run, see Spot play / See Spot brighten up your day', rarity: 'common' },
+    { name: 'Squealer', animal: 'Pig', image: 'https://i0.wp.com/beaniepedia.com/beanies/files/2012/10/41TP0C93AYL._SL500_AA300_.jpg?fit=300%2C300&ssl=1', birthday: 'April 23, 1993', poem: 'Squealer likes to oink and roll / Around the farm and in the bowl', rarity: 'common' },
+    { name: 'Legs', animal: 'Frog', image: 'https://i0.wp.com/beaniepedia.com/beanies/files/2012/10/legs.jpg?fit=350%2C350&ssl=1', birthday: 'April 25, 1993', poem: 'Legs lives in a lily pad / The cutest little frog you ever had', rarity: 'common' },
+    { name: 'Flash', animal: 'Dolphin', image: 'https://i0.wp.com/beaniepedia.com/beanies/files/2012/10/flash.jpg?fit=350%2C350&ssl=1', birthday: 'May 13, 1993', poem: 'Flash the dolphin swims so fast / She always comes in first not last', rarity: 'common' },
+    { name: 'Chocolate', animal: 'Moose', image: 'https://i0.wp.com/beaniepedia.com/beanies/files/2012/10/41Uh6b0cn1L._SL500_AA300_.jpg?fit=300%2C300&ssl=1', birthday: 'April 27, 1993', poem: 'Licorice, candy and you know what? / Chocolate is the name of this cute moose', rarity: 'common' },
+    { name: 'Pinky', animal: 'Flamingo', image: 'https://i0.wp.com/beaniepedia.com/beanies/files/2019/01/pinky-1.jpg?fit=300%2C300&ssl=1', birthday: 'February 13, 1995', poem: 'Pinky loves the Everglades / From the hottest pink she never fades', rarity: 'common' },
 
     // Uncommon (30% chance)
-    { name: 'Patti', animal: 'Platypus', birthday: 'January 6, 1993', poem: 'Ran into Patti one day while walking / Believe me she is not much for talking', rarity: 'uncommon', color: '#da70d6' },
-    { name: 'Mystic', animal: 'Unicorn', birthday: 'May 21, 1994', poem: 'Once upon a time so far away / A unicorn was born one magical day', rarity: 'uncommon', color: '#e6e6fa' },
-    { name: 'Stripes', animal: 'Tiger', birthday: 'June 11, 1995', poem: 'Stripes was never fierce nor strong / So with tigers he didn\'t get along', rarity: 'uncommon', color: '#ffa500' },
-    { name: 'Goldie', animal: 'Goldfish', birthday: 'November 14, 1994', poem: 'She\'s got the rhythm she\'s got the soul / What more could you want in a fish bowl?', rarity: 'uncommon', color: '#ffd700' },
+    { name: 'Patti', animal: 'Platypus', image: 'https://i0.wp.com/beaniepedia.com/beanies/files/2012/10/patti.jpg?fit=352%2C352&ssl=1', birthday: 'January 6, 1993', poem: 'Ran into Patti one day while walking / Believe me she is not much for talking', rarity: 'uncommon' },
+    { name: 'Mystic', animal: 'Unicorn', image: 'https://i0.wp.com/beaniepedia.com/beanies/files/2021/10/mystic.jpg?fit=300%2C300&ssl=1', birthday: 'May 21, 1994', poem: 'Once upon a time so far away / A unicorn was born one magical day', rarity: 'uncommon' },
+    { name: 'Stripes', animal: 'Tiger', image: 'https://i0.wp.com/beaniepedia.com/beanies/files/2013/02/71rxb-lg0UL._AA1500_.jpg?fit=300%2C300&ssl=1', birthday: 'June 11, 1995', poem: 'Stripes was never fierce nor strong / So with tigers he didn\'t get along', rarity: 'uncommon' },
+    { name: 'Goldie', animal: 'Goldfish', image: 'https://i0.wp.com/beaniepedia.com/beanies/files/2020/03/goldie.jpg?fit=300%2C300&ssl=1', birthday: 'November 14, 1994', poem: 'She\'s got the rhythm she\'s got the soul / What more could you want in a fish bowl?', rarity: 'uncommon' },
 
     // Rare (15% chance)
-    { name: 'Rex', animal: 'Tyrannosaurus', birthday: 'January 1, 1995', poem: 'Rex has a temper, watch out beware / Cross him wrong and you\'re in for a scare', rarity: 'rare', color: '#228b22' },
-    { name: 'Steg', animal: 'Stegosaurus', birthday: 'January 1, 1995', poem: 'No Jurassic Park for Steg / He prefers to eat a drumstick leg', rarity: 'rare', color: '#deb887' },
-    { name: 'Garcia', animal: 'Bear', birthday: 'August 1, 1995', poem: 'The Grateful Dead inspired this bear / Peace, love and happiness he\'s ready to share', rarity: 'rare', color: '#ff6347' },
+    { name: 'Rex', animal: 'Tyrannosaurus', image: 'https://i0.wp.com/beaniepedia.com/beanies/files/2021/10/rex.jpg?fit=300%2C300&ssl=1', birthday: 'January 1, 1995', poem: 'Rex has a temper, watch out beware / Cross him wrong and you\'re in for a scare', rarity: 'rare' },
+    { name: 'Steg', animal: 'Stegosaurus', image: 'https://i0.wp.com/beaniepedia.com/beanies/files/2020/11/steg.jpeg?fit=225%2C225&ssl=1', birthday: 'January 1, 1995', poem: 'No Jurassic Park for Steg / He prefers to eat a drumstick leg', rarity: 'rare' },
+    { name: 'Garcia', animal: 'Bear', image: 'https://i0.wp.com/beaniepedia.com/beanies/files/2020/02/garcia.jpg?fit=300%2C300&ssl=1', birthday: 'August 1, 1995', poem: 'The Grateful Dead inspired this bear / Peace, love and happiness he\'s ready to share', rarity: 'rare' },
 
     // Ultra Rare (4% chance)
-    { name: 'Peanut', animal: 'Elephant (Royal Blue)', birthday: 'January 25, 1995', poem: 'Peanut the royal blue elephant / Such a rare find, she\'s heaven sent', rarity: 'ultra-rare', color: '#4169e1' },
-    { name: 'Nana', animal: 'Monkey', birthday: 'August 1, 1995', poem: 'Named after Nana in "The Gong Show" / The rarest monkey that you\'ll ever know', rarity: 'ultra-rare', color: '#8b0000' },
+    { name: 'Peanut', animal: 'Elephant', image: 'https://i0.wp.com/beaniepedia.com/beanies/files/2013/01/51AMQPG4cHL._SL500_AA300_.jpg?fit=300%2C300&ssl=1', birthday: 'January 25, 1995', poem: 'Peanut the royal blue elephant / Such a rare find, she\'s heaven sent', rarity: 'ultra-rare' },
+    { name: 'Nana', animal: 'Monkey', image: 'https://i0.wp.com/beaniepedia.com/beanies/files/2019/01/nana.jpg?fit=352%2C352&ssl=1', birthday: 'August 1, 1995', poem: 'Named after Nana in "The Gong Show" / The rarest monkey that you\'ll ever know', rarity: 'ultra-rare' },
 
     // Legendary (1% chance)
-    { name: 'Billionaire Bear', animal: 'Bear', birthday: 'October 1, 1998', poem: 'Worth more than gold or diamond rings / A Billionaire Bear is fit for kings', rarity: 'legendary', color: '#ffd700' },
+    { name: 'Princess', animal: 'Bear', image: 'https://i0.wp.com/beaniepedia.com/beanies/files/2025/06/princessbud.jpg?fit=400%2C400&ssl=1', birthday: 'October 1, 1997', poem: 'Like an angel she came from heaven above / She shared her compassion, her pain, and her love', rarity: 'legendary' },
   ];
 
   // State
@@ -266,21 +266,17 @@
               class:owned={owned}
               style="
                 --beanie-color: {beanie.color};
+                --beanie-accent: {beanie.accent};
                 --rarity-color: {RARITY_COLORS[beanie.rarity]};
                 --rarity-glow: {owned ? RARITY_GLOW[beanie.rarity] : 'none'};
               "
             >
-              <div class="beanie-sprite">
+              <div class="beanie-plush" class:mystery={!owned}>
                 {#if owned}
-                  <div class="beanie-body"></div>
-                  <div class="beanie-head"></div>
-                  <div class="beanie-ear left"></div>
-                  <div class="beanie-ear right"></div>
-                  <div class="beanie-eye left"></div>
-                  <div class="beanie-eye right"></div>
-                  <div class="beanie-nose"></div>
+                  <img src={beanie.image} alt={beanie.name} class="plush-image" />
+                  <div class="plush-tag">TY</div>
                 {:else}
-                  <span class="mystery">?</span>
+                  <div class="mystery-silhouette">?</div>
                 {/if}
               </div>
               <div class="beanie-name">{owned ? beanie.name : '???'}</div>
@@ -299,19 +295,13 @@
     <div class="prize-overlay" onclick={closePrize}>
       <div class="prize-popup" onclick={(e) => e.stopPropagation()}>
         <div
-          class="prize-beanie"
+          class="prize-plush"
           style="
-            --beanie-color: {currentPrize.color};
             --rarity-glow: {RARITY_GLOW[currentPrize.rarity]};
           "
         >
-          <div class="beanie-body large"></div>
-          <div class="beanie-head large"></div>
-          <div class="beanie-ear left large"></div>
-          <div class="beanie-ear right large"></div>
-          <div class="beanie-eye left large"></div>
-          <div class="beanie-eye right large"></div>
-          <div class="beanie-nose large"></div>
+          <img src={currentPrize.image} alt={currentPrize.name} class="prize-image" />
+          <div class="prize-plush-tag">TY</div>
         </div>
 
         <h2 class="prize-name" style="color: {RARITY_COLORS[currentPrize.rarity]}">
@@ -584,114 +574,58 @@
     box-shadow: var(--rarity-glow);
   }
 
-  .beanie-sprite {
-    width: 40px;
-    height: 40px;
+  /* Plush toy display - collection */
+  .beanie-plush {
+    width: 60px;
+    height: 60px;
     margin: 0 auto;
     position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  .mystery {
-    font-size: 2rem;
-    color: #bdc3c7;
+  .beanie-plush.mystery {
+    background: linear-gradient(135deg, #e0e0e0 0%, #b0b0b0 100%);
+    border-radius: 12px;
   }
 
-  .beanie-body {
+  .mystery-silhouette {
+    font-size: 2.5rem;
+    color: #888;
+    font-weight: bold;
+  }
+
+  .plush-image {
+    width: 55px;
+    height: 55px;
+    object-fit: contain;
+    filter: drop-shadow(2px 2px 3px rgba(0, 0, 0, 0.3));
+  }
+
+  .plush-tag {
     position: absolute;
-    width: 30px;
-    height: 25px;
-    background: var(--beanie-color);
-    border-radius: 50%;
-    bottom: 0;
-    left: 5px;
-  }
-
-  .beanie-body.large {
-    width: 80px;
-    height: 65px;
-    left: 10px;
-  }
-
-  .beanie-head {
-    position: absolute;
-    width: 24px;
-    height: 20px;
-    background: var(--beanie-color);
-    border-radius: 50%;
-    top: 0;
-    left: 8px;
-  }
-
-  .beanie-head.large {
-    width: 60px;
-    height: 50px;
-    left: 20px;
-    top: -10px;
-  }
-
-  .beanie-ear {
-    position: absolute;
-    width: 8px;
-    height: 8px;
-    background: var(--beanie-color);
-    border-radius: 50%;
-    top: -2px;
-  }
-
-  .beanie-ear.left { left: 6px; }
-  .beanie-ear.right { right: 6px; }
-
-  .beanie-ear.large {
-    width: 20px;
-    height: 20px;
-    top: -15px;
-  }
-
-  .beanie-ear.large.left { left: 15px; }
-  .beanie-ear.large.right { right: 15px; }
-
-  .beanie-eye {
-    position: absolute;
-    width: 4px;
-    height: 4px;
-    background: #000;
-    border-radius: 50%;
-    top: 8px;
-  }
-
-  .beanie-eye.left { left: 12px; }
-  .beanie-eye.right { right: 12px; }
-
-  .beanie-eye.large {
-    width: 10px;
-    height: 10px;
-    top: 10px;
-  }
-
-  .beanie-eye.large.left { left: 30px; }
-  .beanie-eye.large.right { right: 30px; }
-
-  .beanie-nose {
-    position: absolute;
-    width: 4px;
-    height: 3px;
-    background: #c0392b;
-    border-radius: 50%;
-    top: 12px;
-    left: 18px;
-  }
-
-  .beanie-nose.large {
-    width: 10px;
-    height: 8px;
-    top: 20px;
-    left: 45px;
+    bottom: -4px;
+    right: -4px;
+    width: 18px;
+    height: 12px;
+    background: linear-gradient(135deg, #ff6b6b 0%, #c0392b 100%);
+    border-radius: 2px;
+    color: white;
+    font-size: 0.35rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    border: 1px solid #fff;
   }
 
   .beanie-name {
-    font-size: 0.4rem;
+    font-size: 0.45rem;
     color: #2c3e50;
     margin-top: 0.25rem;
+    font-weight: bold;
   }
 
   .beanie-rarity {
@@ -731,13 +665,44 @@
     to { transform: scale(1); }
   }
 
-  .prize-beanie {
-    width: 100px;
-    height: 100px;
+  /* Prize plush - large SVG display */
+  .prize-plush {
+    width: 140px;
+    height: 140px;
     margin: 0 auto 1rem;
     position: relative;
     animation: bounce 0.5s infinite alternate;
-    filter: drop-shadow(var(--rarity-glow));
+  }
+
+  .prize-image {
+    width: 130px;
+    height: 130px;
+    object-fit: contain;
+    filter: drop-shadow(var(--rarity-glow)) drop-shadow(3px 4px 5px rgba(0, 0, 0, 0.4));
+  }
+
+  .prize-plush-tag {
+    position: absolute;
+    bottom: 0;
+    right: 5px;
+    width: 32px;
+    height: 20px;
+    background: linear-gradient(135deg, #ff6b6b 0%, #c0392b 100%);
+    border-radius: 3px;
+    color: white;
+    font-size: 0.55rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    border: 2px solid #fff;
+    animation: tagSwing 1s ease-in-out infinite;
+  }
+
+  @keyframes tagSwing {
+    0%, 100% { transform: rotate(-5deg); }
+    50% { transform: rotate(5deg); }
   }
 
   @keyframes bounce {
