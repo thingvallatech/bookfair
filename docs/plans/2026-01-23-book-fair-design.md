@@ -283,40 +283,359 @@ The landing page is a shelf in a kid's bedroom. Warm afternoon light through bli
 
 ## Technical Architecture
 
-### Frontend
+### Framework: SvelteKit
 
-**Framework:** Vanilla JS or lightweight framework (Svelte preferred for reactivity without bloat)
+**Why SvelteKit:**
+- Compiles away at build time—ships ~2KB runtime vs React's 42KB
+- Built-in transitions and animations perfect for nostalgic/playful UI
+- File-based routing handles room navigation without page reloads
+- Canvas/WebGL integration is clean (`bind:this={canvas}`, simple `onMount`/`onDestroy`)
+- Each "toy" is a self-contained Svelte component
+- Best-in-class DX for building many small interactive pieces
 
-**Graphics:**
-- Three.js for 3D/WebGL objects (snow globes, physics toys)
-- Canvas 2D for drawing tools, 2D games
-- CSS for UI, shelf layout, navigation
+**Alternative:** Astro + Svelte islands if rooms have significant static content with interactive modules.
 
-**Audio:**
-- Web Audio API for sound effects and music
-- Howler.js for cross-browser compatibility
+**Project Structure:**
+```
+src/
+├── routes/
+│   ├── +layout.svelte          # Shared room chrome, navigation
+│   ├── +page.svelte            # Landing shelf (Bedroom 1997)
+│   ├── secret-room/
+│   │   └── +page.svelte        # Hidden room via Magic Eye
+│   └── [room]/
+│       └── +page.svelte        # Dynamic room routing
+├── lib/
+│   ├── components/
+│   │   ├── Shelf.svelte        # Shelf renderer
+│   │   ├── ShelfObject.svelte  # Clickable object wrapper
+│   │   └── RoomTransition.svelte
+│   └── toys/                   # Self-contained interactive modules
+│       ├── KooshBall.svelte
+│       ├── DialUpModem.svelte
+│       ├── KidPix.svelte
+│       ├── MagicEye.svelte
+│       ├── PogGame.svelte
+│       ├── LunchablesBuilder.svelte
+│       └── VirtualPet.svelte
+├── stores/
+│   └── gameState.js            # Shared state (collections, pet, progress)
+└── assets/
+    ├── sounds/
+    ├── sprites/
+    └── textures/
+```
 
-**State:**
-- localStorage for anonymous persistence (pet, pogs, etc.)
-- Optional accounts for cross-device sync (later)
+---
+
+### Physics Libraries
+
+**Soft Body Physics (Koosh Ball):**
+- **Primary: Ammo.js** — WebAssembly port of Bullet Physics, only mainstream JS library with true soft body support
+- Configurable internal pressure, stiffness, damping
+- [Three.js integration examples](https://threejs.org/examples/physics_ammo_cloth.html)
+- ~1.5MB WASM bundle (load on-demand for Koosh Ball only)
+
+```javascript
+// Soft body config for squishy feel
+const config = softBody.get_m_cfg();
+config.set_kPR(pressure);     // Internal pressure - key for squish
+config.set_kDF(0.1);          // Dynamic friction
+config.set_kDP(0.01);         // Damping
+
+const material = softBody.get_m_materials().at(0);
+material.set_m_kLST(0.4);     // Linear stiffness (lower = squishier)
+```
+
+**Rigid Body Physics (Pogs):**
+- **Primary: Rapier** — Rust compiled to WASM, fastest JS physics engine
+- ~500KB bundle, SIMD-optimized
+- Excellent for coin flip physics with realistic collision
+
+```javascript
+import RAPIER from '@dimforge/rapier3d';
+
+// Pog/coin collider
+const colliderDesc = RAPIER.ColliderDesc.cylinder(0.02, 0.15)
+  .setRestitution(0.6)    // Bounce
+  .setFriction(0.3)       // Surface grip
+  .setDensity(7.8);       // Steel-like weight
+
+// Slam impulse
+rigidBody.applyTorqueImpulse({ x: 10, y: 2, z: 10 }, true);
+```
+
+---
+
+### Drawing Tools (Kid Pix)
+
+**Primary: Konva.js + perfect-freehand**
+
+- **Konva.js** — Best performance (60 FPS vs 9 FPS for Fabric.js), native layer system, built-in undo/redo via state serialization
+- **perfect-freehand** — Best-in-class pressure-sensitive stroke algorithm (used by tldraw, Excalidraw)
+- 473K weekly npm downloads, actively maintained
+
+```javascript
+import { getStroke } from 'perfect-freehand';
+
+const stroke = getStroke(points, {
+  size: 16,
+  thinning: 0.5,
+  smoothing: 0.5,
+  streamline: 0.5,
+});
+```
+
+**Stamp library:** Konva's native Image support for draggable stamps with sound-on-place.
+
+**"Oh no!" undo:** Konva's `stage.toJSON()` / `stage.fromJSON()` for state snapshots.
+
+**Export:** `stage.toDataURL()` for PNG export to gallery.
+
+---
+
+### Audio
+
+**Sound Effects & Music: Howler.js**
+- 7KB gzipped, zero dependencies
+- Audio sprites for UI sounds (combine multiple effects into one file)
+- HTML5 Audio mode for streaming longer files (dial-up sound)
+
+```javascript
+const sounds = new Howl({
+  src: ['ui-sounds.webm', 'ui-sounds.mp3'],
+  sprite: {
+    click: [0, 500],
+    stamp: [1000, 300],
+    ohno: [2000, 1500],
+    dialup: [4000, 30000]
+  }
+});
+
+sounds.play('dialup');
+```
+
+**Chiptune Synthesis: Tone.js**
+- For dynamic 8-bit sounds (pet sounds, game feedback)
+- PulseOscillator for NES-style waveforms
+
+**Retro Sound Effects: jsfxr**
+- Procedural 8-bit sound generation
+- Presets: `pickupCoin`, `laserShoot`, `jump`, `powerUp`
+- [Online editor at sfxr.me](https://sfxr.me/)
+
+**Visualizers: Butterchurn**
+- WebGL implementation of Winamp's Milkdrop visualizer
+- Thousands of community presets
+- For the Winamp skin / music player object
+
+---
+
+### Retro Visual Effects
+
+**CRT Scanlines:**
+- **CRTFilter.js** — Dedicated WebGL library
+- Barrel distortion, chromatic aberration, scanline intensity, flicker
+
+```javascript
+const crtEffect = new CRTFilterWebGL(canvas, {
+  barrelDistortion: 0.001,
+  chromaticAberration: 0.0005,
+  scanlineIntensity: 0.6,
+  flicker: 0.01
+});
+```
+
+**Pixel Art Scaling:**
+```css
+canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+```
+```javascript
+ctx.imageSmoothingEnabled = false;
+```
+
+**Dithering: DitherJS**
+- Atkinson algorithm (classic Mac style)
+- Floyd-Steinberg error diffusion
+- Custom color palettes (Game Boy, CGA, NES)
+
+**Magic Eye: MagicEye.js / Stereogram.js**
+- Generate autostereograms from depth maps
+- TextDepthMapper for text-based hidden images
+
+```javascript
+const magicEye = new MagicEye({
+  el: "stereogram-canvas",
+  width: 500,
+  height: 400,
+  numColors: 10,
+  depthMap: depthMapArray
+}).render();
+```
+
+---
+
+### Virtual Pet System
+
+**State Machine: XState v5**
+- Visual editor at [state.new](https://state.new) for designing evolution paths
+- Actor model perfect for pet that receives events and changes behavior
+- Guards for conditional evolution based on care quality
+
+```javascript
+import { setup, createActor, assign } from 'xstate';
+
+const petMachine = setup({
+  guards: {
+    canEvolve: ({ context }) =>
+      context.age >= context.evolutionAge &&
+      context.careMistakes <= 3,
+  },
+}).createMachine({
+  id: 'pet',
+  initial: 'egg',
+  context: {
+    hunger: 5,
+    happiness: 5,
+    age: 0,
+    careMistakes: 0,
+    evolutionAge: 24,
+  },
+  states: {
+    egg: { after: { 60000: 'baby' } },
+    baby: {
+      on: { EVOLVE: { target: 'child', guard: 'canEvolve' } }
+    },
+    child: { /* branching paths based on care */ },
+    teen: { /* ... */ },
+    adult: { /* ... */ },
+  },
+});
+```
+
+**Sprite Animation: PixiJS**
+- AnimatedSprite for pixel art character animations
+- Spritesheet support (export from Aseprite)
+- 60 FPS rendering, handles state-based animation switching
+
+**Offline Time Calculation:**
+```javascript
+// When app loads, calculate what happened while away
+const elapsed = Date.now() - savedState.lastUpdate;
+const ticksPassed = Math.floor(elapsed / TICK_INTERVAL);
+const hungerDecay = ticksPassed * HUNGER_DECAY_RATE;
+const newHunger = Math.max(0, savedState.hunger - hungerDecay);
+
+// Care mistakes: if hunger was 0 for 10+ ticks
+const ticksAtZero = Math.max(0, ticksPassed - savedState.hunger);
+const careMistakes = Math.floor(ticksAtZero / 10);
+```
+
+---
+
+### Persistent Storage
+
+**Primary: Dexie.js (IndexedDB)**
+- Clean Promise-based API over IndexedDB
+- Handles complex data (pet state, evolution history, collections)
+- Survives browser restarts, larger quota than localStorage
+
+```javascript
+import Dexie from 'dexie';
+
+const db = new Dexie('BookFairDB');
+db.version(1).stores({
+  pets: '++id, name, stage, lastUpdate',
+  collections: '++id, type, itemId, foundAt',
+  gallery: '++id, imageData, createdAt',
+});
+```
+
+**Quick State: localStorage**
+- Last visit timestamp
+- Sound preference
+- Simple flags
+
+---
 
 ### Backend (Minimal)
 
-**Gallery storage:** Simple API for Kid Pix image saves
+**Gallery Storage:** Cloudflare R2 or similar for Kid Pix image saves
 
-**Leaderboards:** Pog high scores, rare pog discoveries
+**API:** SvelteKit API routes or Cloudflare Workers for:
+- Gallery image upload/fetch
+- Pog leaderboards
+- Anonymous visitor counts
 
-**Analytics:** Privacy-respecting, counts only (visitors, popular objects)
+**Hosting:** Cloudflare Pages or Vercel
+- Static site with edge functions
+- Global CDN for assets
 
-**Hosting:** Static site with serverless functions where needed
+---
+
+### Dependencies Summary
+
+```json
+{
+  "dependencies": {
+    "svelte": "^5.x",
+    "@sveltejs/kit": "^2.x",
+    "three": "^0.170.x",
+    "konva": "^9.x",
+    "perfect-freehand": "^1.x",
+    "howler": "^2.x",
+    "tone": "^15.x",
+    "xstate": "^5.x",
+    "pixi.js": "^8.x",
+    "dexie": "^4.x"
+  },
+  "devDependencies": {
+    "@dimforge/rapier3d": "^0.14.x"
+  },
+  "optionalDependencies": {
+    "ammo.js": "latest"
+  }
+}
+```
+
+**Load Strategy:**
+- Core (Svelte, Howler, Dexie): Always loaded (~50KB)
+- Per-object (Rapier, Ammo, Konva, PixiJS): Dynamic import when object is opened
+- Keeps initial load fast, loads heavy libraries on demand
+
+---
 
 ### Content Pipeline
 
-Each object is a self-contained module:
-- Own directory
-- Own assets (images, sounds, 3D models)
-- Own state management
-- Standard interface for shelf integration
+Each object is a self-contained Svelte component:
+
+```
+src/lib/toys/KooshBall/
+├── KooshBall.svelte      # Main component
+├── physics.js            # Ammo.js soft body setup
+├── assets/
+│   ├── koosh-texture.png
+│   └── squish.mp3
+└── README.md             # Object documentation
+```
+
+Standard interface:
+```svelte
+<script>
+  import { onMount, onDestroy } from 'svelte';
+  import { createEventDispatcher } from 'svelte';
+
+  const dispatch = createEventDispatcher();
+
+  // All objects emit 'close' to return to shelf
+  // All objects can emit 'navigate' to go somewhere
+  // All objects receive 'active' prop
+  export let active = false;
+</script>
+```
 
 This makes it easy to add new objects without touching core code.
 
