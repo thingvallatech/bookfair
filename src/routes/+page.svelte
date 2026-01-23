@@ -18,14 +18,16 @@
   import Screensaver from '$lib/toys/Screensaver.svelte';
   import BeanieBaby from '$lib/toys/BeanieBaby.svelte';
   import FishTank from '$lib/toys/FishTank.svelte';
+  import { ALL_BEANIES, pickRandomBeanie, type Beanie } from '$lib/stores/beanies';
 
   // Which object is currently "open" (fullscreen experience)
   let activeObject = $state<string | null>(null);
+  let activeBeanie = $state<Beanie | null>(null);
   let isLoading = $state(false);
   let focusedIndex = $state(0);
 
-  // Shelf objects - organized into pages
-  const shelfObjects = [
+  // Base shelf objects (not including random beanies)
+  const baseShelfObjects = [
     { id: 'modem', name: 'Dial-Up Modem', icon: '📠', desc: 'Connect to the internet' },
     { id: 'koosh', name: 'Koosh Ball', icon: '🔴', desc: 'Squish and throw' },
     { id: 'kidpix', name: 'Kid Pix', icon: '🎨', desc: 'Draw and create' },
@@ -38,21 +40,18 @@
     { id: 'oregontrail', name: 'Oregon Trail', icon: '🤠', desc: 'You have dysentery' },
     { id: 'lisafrank', name: 'Lisa Frank', icon: '🦄', desc: 'Rainbows forever' },
     { id: 'screensaver', name: 'Screensaver', icon: '🖥️', desc: 'Flying toasters' },
-    { id: 'beaniebaby', name: 'Beanie Baby', icon: '🧸', desc: 'Collect them all!', persists: true },
     { id: 'fishtank', name: 'Fish Tank', icon: '🐠', desc: 'Watch them grow', persists: true },
   ];
 
+  // Random beanies for this session (injected into shelf)
+  let sessionBeanies = $state<Beanie[]>([]);
+  let shelfObjects = $state<typeof baseShelfObjects>([...baseShelfObjects]);
+
   const ITEMS_PER_PAGE = 6;
   let currentPage = $state(0);
-  const totalPages = Math.ceil(shelfObjects.length / ITEMS_PER_PAGE);
 
-  $effect(() => {
-    // Get current page items
-    return shelfObjects.slice(
-      currentPage * ITEMS_PER_PAGE,
-      (currentPage + 1) * ITEMS_PER_PAGE
-    );
-  });
+  // Derived total pages (recalculates when shelfObjects changes)
+  let totalPages = $derived(Math.ceil(shelfObjects.length / ITEMS_PER_PAGE));
 
   function getCurrentPageItems() {
     return shelfObjects.slice(
@@ -61,13 +60,49 @@
     );
   }
 
-  function openObject(id: string) {
+  // Initialize random beanies on mount
+  function initBeanies() {
+    // Pick 1-2 random beanies for this session
+    const numBeanies = Math.random() < 0.7 ? 1 : 2;
+    const picked: Beanie[] = [];
+
+    for (let i = 0; i < numBeanies; i++) {
+      const beanie = pickRandomBeanie(picked.map(b => b.name));
+      picked.push(beanie);
+    }
+
+    sessionBeanies = picked;
+
+    // Create beanie shelf items
+    const beanieItems = picked.map((beanie, i) => ({
+      id: `beanie-${i}`,
+      name: beanie.name,
+      icon: '🧸',
+      desc: `the ${beanie.animal}`,
+      isBeanie: true,
+      beanieData: beanie
+    }));
+
+    // Inject beanies at random positions throughout the shelf
+    const combined = [...baseShelfObjects];
+    for (const beanieItem of beanieItems) {
+      const pos = Math.floor(Math.random() * (combined.length + 1));
+      combined.splice(pos, 0, beanieItem as typeof baseShelfObjects[0]);
+    }
+
+    shelfObjects = combined;
+  }
+
+  function openObject(id: string, beanieData?: Beanie) {
     playSound('click');
     isLoading = true;
 
     // Brief loading state for visual feedback
     setTimeout(() => {
       activeObject = id;
+      if (beanieData) {
+        activeBeanie = beanieData;
+      }
       isLoading = false;
       // Push state for back button support
       if (browser) {
@@ -79,6 +114,7 @@
   function closeObject() {
     playSound('whoosh', 0.3);
     activeObject = null;
+    activeBeanie = null;
     if (browser) {
       history.pushState({}, '', '/');
     }
@@ -150,7 +186,7 @@
       case ' ':
         e.preventDefault();
         const item = currentItems[focusedIndex];
-        if (item) openObject(item.id);
+        if (item) openObject(item.id, (item as any).beanieData);
         break;
     }
   }
@@ -187,6 +223,9 @@
   }
 
   onMount(() => {
+    // Initialize random beanies for this session
+    initBeanies();
+
     // Check for hash on load
     if (browser && window.location.hash) {
       const id = window.location.hash.slice(1);
@@ -258,11 +297,15 @@
             <button
               class="shelf-item nes-pointer"
               class:focused={focusedIndex === i && !activeObject}
-              onclick={() => openObject(obj.id)}
+              onclick={() => openObject(obj.id, (obj as any).beanieData)}
               title={obj.desc}
               tabindex={focusedIndex === i ? 0 : -1}
             >
-              <div class="item-icon">{obj.icon}</div>
+              {#if (obj as any).isBeanie && (obj as any).beanieData?.image}
+                <img src={(obj as any).beanieData.image} alt={obj.name} class="item-beanie-img" />
+              {:else}
+                <div class="item-icon">{obj.icon}</div>
+              {/if}
               <span class="item-label">{obj.name}</span>
               {#if obj.persists}
                 <span class="persist-badge" title="Saves your progress">💾</span>
@@ -345,9 +388,9 @@
   <div class="object-view" role="dialog" aria-label="Screensaver">
     <Screensaver onClose={closeObject} />
   </div>
-{:else if activeObject === 'beaniebaby'}
-  <div class="object-view" role="dialog" aria-label="Beanie Baby">
-    <BeanieBaby onClose={closeObject} />
+{:else if activeObject?.startsWith('beanie-') && activeBeanie}
+  <div class="object-view" role="dialog" aria-label={`Beanie Baby: ${activeBeanie.name}`}>
+    <BeanieBaby beanie={activeBeanie} onClose={closeObject} />
   </div>
 {:else if activeObject === 'fishtank'}
   <div class="object-view" role="dialog" aria-label="Fish Tank">
@@ -499,6 +542,14 @@
     font-size: 2.5rem;
     line-height: 1;
     filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.5));
+  }
+
+  .item-beanie-img {
+    width: 50px;
+    height: 50px;
+    object-fit: contain;
+    filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.5));
+    border-radius: 8px;
   }
 
   .item-label {
