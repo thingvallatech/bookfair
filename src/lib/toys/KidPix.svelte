@@ -1,13 +1,20 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import CloseButton from '$lib/components/CloseButton.svelte';
+  import HidingBeanie from '$lib/components/HidingBeanie.svelte';
   import { playSound, playRandomSound } from '$lib/stores/audio';
+  import { registerSpots, getBeaniesForArea, type HidingSpot } from '$lib/stores/beanieHunt';
+  import type { Beanie } from '$lib/stores/beanies';
 
   interface Props {
     onClose: () => void;
   }
 
   let { onClose }: Props = $props();
+
+  // Hidden beanie behind toolbar
+  const hidingSpots: HidingSpot[] = [{ id: 'behind-toolbar' }];
+  let hiddenBeanie = $state<Beanie | null>(null);
 
   let canvas: HTMLCanvasElement;
   let ctx: CanvasRenderingContext2D;
@@ -237,6 +244,11 @@
   }
 
   onMount(() => {
+    // Register hiding spot
+    registerSpots('kidpix', hidingSpots);
+    const beanies = getBeaniesForArea('kidpix');
+    hiddenBeanie = beanies.get('behind-toolbar') || null;
+
     ctx = canvas.getContext('2d')!;
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
@@ -322,32 +334,37 @@
     ></canvas>
   </div>
 
-  <!-- Bottom toolbar - colors and stamps -->
-  <div class="toolbar bottom-toolbar">
-    <!-- Color palette -->
-    <div class="color-palette">
-      {#each colors as color}
-        <button
-          class="color-btn"
-          class:active={currentColor === color}
-          style="background-color: {color};"
-          onclick={() => currentColor = color}
-        ></button>
-      {/each}
-    </div>
-
-    <!-- Stamps (show when stamp tool selected) -->
-    {#if currentTool === 'stamp'}
-      <div class="stamp-palette">
-        {#each stamps as stamp, i}
+  <!-- Bottom toolbar with beanie peeking from behind -->
+  <div class="bottom-toolbar-wrapper">
+    {#if hiddenBeanie}
+      <HidingBeanie beanie={hiddenBeanie} class="kidpix-beanie" />
+    {/if}
+    <div class="toolbar bottom-toolbar">
+      <!-- Color palette -->
+      <div class="color-palette">
+        {#each colors as color}
           <button
-            class="stamp-btn"
-            class:active={currentStamp === i}
-            onclick={() => currentStamp = i}
-          >{stamp}</button>
+            class="color-btn"
+            class:active={currentColor === color}
+            style="background-color: {color};"
+            onclick={() => currentColor = color}
+          ></button>
         {/each}
       </div>
-    {/if}
+
+      <!-- Stamps (show when stamp tool selected) -->
+      {#if currentTool === 'stamp'}
+        <div class="stamp-palette">
+          {#each stamps as stamp, i}
+            <button
+              class="stamp-btn"
+              class:active={currentStamp === i}
+              onclick={() => currentStamp = i}
+            >{stamp}</button>
+          {/each}
+        </div>
+      {/if}
+    </div>
   </div>
 </div>
 
@@ -398,8 +415,25 @@
     padding-top: 8px;
   }
 
+  .bottom-toolbar-wrapper {
+    position: relative;
+  }
+
   .bottom-toolbar {
     border-top: none;
+    position: relative;
+    z-index: 10; /* Toolbar in front of beanie */
+  }
+
+  /* Beanie peeking from behind toolbar */
+  :global(.kidpix-beanie) {
+    top: -50px;
+    right: 40px;
+    z-index: 5;
+  }
+
+  :global(.kidpix-beanie.discovered) {
+    z-index: 15 !important;
   }
 
   .tool-group {

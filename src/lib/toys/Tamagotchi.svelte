@@ -1,13 +1,20 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import CloseButton from '$lib/components/CloseButton.svelte';
+  import HidingBeanie from '$lib/components/HidingBeanie.svelte';
   import { playSound } from '$lib/stores/audio';
+  import { registerSpots, getBeaniesForArea, type HidingSpot } from '$lib/stores/beanieHunt';
+  import type { Beanie } from '$lib/stores/beanies';
 
   interface Props {
     onClose: () => void;
   }
 
   let { onClose }: Props = $props();
+
+  // Hidden beanie behind device
+  const hidingSpots: HidingSpot[] = [{ id: 'behind-device' }];
+  let hiddenBeanie = $state<Beanie | null>(null);
 
   interface Pet {
     name: string;
@@ -314,6 +321,11 @@
   let animationInterval: number;
 
   onMount(() => {
+    // Register hiding spot
+    registerSpots('tamagotchi', hidingSpots);
+    const beanies = getBeaniesForArea('tamagotchi');
+    hiddenBeanie = beanies.get('behind-device') || null;
+
     loadPet();
 
     // Animation loop
@@ -338,10 +350,15 @@
 <div class="tamagotchi">
   <CloseButton {onClose} variant="light" />
 
-  <div class="device">
-    <div class="device-top">
-      <div class="device-loop"></div>
-    </div>
+  <!-- Device with beanie peeking from behind -->
+  <div class="device-wrapper">
+    {#if hiddenBeanie}
+      <HidingBeanie beanie={hiddenBeanie} class="tama-beanie" />
+    {/if}
+    <div class="device">
+      <div class="device-top">
+        <div class="device-loop"></div>
+      </div>
 
     <div class="screen-frame">
       <div class="screen">
@@ -476,6 +493,7 @@
     {/if}
 
     <div class="device-bottom"></div>
+    </div>
   </div>
 </div>
 
@@ -492,6 +510,10 @@
   }
 
 
+  .device-wrapper {
+    position: relative;
+  }
+
   .device {
     width: 220px;
     background: linear-gradient(180deg, #f472b6 0%, #db2777 100%);
@@ -500,6 +522,19 @@
     box-shadow:
       0 10px 30px rgba(0, 0, 0, 0.3),
       inset 0 2px 10px rgba(255, 255, 255, 0.3);
+    position: relative;
+    z-index: 10; /* Device in front of beanie */
+  }
+
+  /* Beanie peeking from behind device */
+  :global(.tama-beanie) {
+    bottom: 20px;
+    right: -25px;
+    z-index: 5;
+  }
+
+  :global(.tama-beanie.discovered) {
+    z-index: 15 !important;
   }
 
   .device-top {

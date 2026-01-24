@@ -1,13 +1,20 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import CloseButton from '$lib/components/CloseButton.svelte';
+  import HidingBeanie from '$lib/components/HidingBeanie.svelte';
   import { playSound } from '$lib/stores/audio';
+  import { registerSpots, getBeaniesForArea, type HidingSpot } from '$lib/stores/beanieHunt';
+  import type { Beanie } from '$lib/stores/beanies';
 
   interface Props {
     onClose: () => void;
   }
 
   let { onClose }: Props = $props();
+
+  // Hidden beanie behind mode selector
+  const hidingSpots: HidingSpot[] = [{ id: 'behind-modes' }];
+  let hiddenBeanie = $state<Beanie | null>(null);
 
   let canvas: HTMLCanvasElement;
   let ctx: CanvasRenderingContext2D;
@@ -344,6 +351,11 @@
   }
 
   onMount(() => {
+    // Register hiding spot
+    registerSpots('screensaver', hidingSpots);
+    const beanies = getBeaniesForArea('screensaver');
+    hiddenBeanie = beanies.get('behind-modes') || null;
+
     ctx = canvas.getContext('2d')!;
     resize();
     draw();
@@ -368,22 +380,28 @@
 
   <canvas bind:this={canvas}></canvas>
 
-  <div class="mode-selector">
-    <button class:active={mode === 'toasters'} onclick={() => { playSound('click', 0.3); mode = 'toasters'; }}>
-      🍞 Flying Toasters
-    </button>
-    <button class:active={mode === 'pipes'} onclick={() => { playSound('click', 0.3); mode = 'pipes'; }}>
-      🔧 3D Pipes
-    </button>
-    <button class:active={mode === 'dvd'} onclick={() => { playSound('click', 0.3); mode = 'dvd'; }}>
-      📀 DVD Bounce
-    </button>
-    <button class:active={mode === 'matrix'} onclick={() => { playSound('click', 0.3); mode = 'matrix'; }}>
-      💚 Matrix
-    </button>
-    <button class:active={mode === 'starfield'} onclick={() => { playSound('click', 0.3); mode = 'starfield'; }}>
-      ⭐ Starfield
-    </button>
+  <!-- Mode selector with beanie peeking from behind -->
+  <div class="mode-wrapper">
+    {#if hiddenBeanie}
+      <HidingBeanie beanie={hiddenBeanie} class="screensaver-beanie" />
+    {/if}
+    <div class="mode-selector">
+      <button class:active={mode === 'toasters'} onclick={() => { playSound('click', 0.3); mode = 'toasters'; }}>
+        🍞 Flying Toasters
+      </button>
+      <button class:active={mode === 'pipes'} onclick={() => { playSound('click', 0.3); mode = 'pipes'; }}>
+        🔧 3D Pipes
+      </button>
+      <button class:active={mode === 'dvd'} onclick={() => { playSound('click', 0.3); mode = 'dvd'; }}>
+        📀 DVD Bounce
+      </button>
+      <button class:active={mode === 'matrix'} onclick={() => { playSound('click', 0.3); mode = 'matrix'; }}>
+        💚 Matrix
+      </button>
+      <button class:active={mode === 'starfield'} onclick={() => { playSound('click', 0.3); mode = 'starfield'; }}>
+        ⭐ Starfield
+      </button>
+    </div>
   </div>
 </div>
 
@@ -414,17 +432,33 @@
     display: block;
   }
 
-  .mode-selector {
+  .mode-wrapper {
     position: absolute;
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
+  }
+
+  /* Beanie peeking from behind mode selector */
+  :global(.screensaver-beanie) {
+    top: -50px;
+    left: 10px;
+    z-index: 5;
+  }
+
+  :global(.screensaver-beanie.discovered) {
+    z-index: 15 !important;
+  }
+
+  .mode-selector {
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
     justify-content: center;
     padding: 10px;
     background: rgba(0, 0, 0, 0.7);
+    position: relative;
+    z-index: 10; /* Selector in front of beanie */
     border-radius: 10px;
   }
 

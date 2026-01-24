@@ -1,13 +1,20 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import CloseButton from '$lib/components/CloseButton.svelte';
+  import HidingBeanie from '$lib/components/HidingBeanie.svelte';
   import { playSound } from '$lib/stores/audio';
+  import { registerSpots, getBeaniesForArea, type HidingSpot } from '$lib/stores/beanieHunt';
+  import type { Beanie } from '$lib/stores/beanies';
 
   interface Props {
     onClose: () => void;
   }
 
   let { onClose }: Props = $props();
+
+  // Hidden beanie behind player
+  const hidingSpots: HidingSpot[] = [{ id: 'behind-player' }];
+  let hiddenBeanie = $state<Beanie | null>(null);
 
   let canvas: HTMLCanvasElement;
   let ctx: CanvasRenderingContext2D;
@@ -271,6 +278,11 @@
   }
 
   onMount(() => {
+    // Register hiding spot
+    registerSpots('winamp', hidingSpots);
+    const beanies = getBeaniesForArea('winamp');
+    hiddenBeanie = beanies.get('behind-player') || null;
+
     ctx = canvas.getContext('2d')!;
     canvas.width = 275;
     canvas.height = 100;
@@ -288,11 +300,15 @@
   });
 </script>
 
-<div class="winamp" style="--bg: {skins[currentSkin].bg}; --accent: {skins[currentSkin].accent}; --text: {skins[currentSkin].text}">
-  <CloseButton {onClose} />
+<div class="winamp-wrapper">
+  {#if hiddenBeanie}
+    <HidingBeanie beanie={hiddenBeanie} class="winamp-beanie" />
+  {/if}
+  <div class="winamp" style="--bg: {skins[currentSkin].bg}; --accent: {skins[currentSkin].accent}; --text: {skins[currentSkin].text}">
+    <CloseButton {onClose} />
 
-  <!-- Title bar -->
-  <div class="title-bar">
+    <!-- Title bar -->
+    <div class="title-bar">
     <span class="title">WINAMP</span>
     <span class="llama">it really whips the llama's ass!</span>
   </div>
@@ -370,17 +386,37 @@
       {/each}
     </div>
   </div>
+  </div>
 </div>
 
 <style>
-  .winamp {
+  .winamp-wrapper {
     width: 100%;
     height: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background: #1a1a1a;
+  }
+
+  /* Beanie peeking from behind player */
+  :global(.winamp-beanie) {
+    bottom: 60px;
+    right: calc(50% - 180px);
+    z-index: 5;
+  }
+
+  :global(.winamp-beanie.discovered) {
+    z-index: 15 !important;
+  }
+
+  .winamp {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    position: relative;
+    z-index: 10; /* Player in front of beanie */
     padding: 20px;
     font-family: 'Press Start 2P', monospace;
     position: relative;

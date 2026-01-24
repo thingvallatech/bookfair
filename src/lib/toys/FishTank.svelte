@@ -2,12 +2,19 @@
   import { onMount, onDestroy } from 'svelte';
   import { browser } from '$app/environment';
   import { playSound } from '$lib/stores/audio';
+  import HidingBeanie from '$lib/components/HidingBeanie.svelte';
+  import { registerSpots, getBeaniesForArea, type HidingSpot } from '$lib/stores/beanieHunt';
+  import type { Beanie } from '$lib/stores/beanies';
 
   interface Props {
     onClose: () => void;
   }
 
   let { onClose }: Props = $props();
+
+  // Hidden beanie behind tank frame
+  const hidingSpots: HidingSpot[] = [{ id: 'tank-corner' }];
+  let hiddenBeanie = $state<Beanie | null>(null);
 
   interface Fish {
     id: number;
@@ -566,6 +573,11 @@
   }
 
   onMount(() => {
+    // Register hiding spot
+    registerSpots('fishtank', hidingSpots);
+    const beanies = getBeaniesForArea('fishtank');
+    hiddenBeanie = beanies.get('tank-corner') || null;
+
     loadState();
 
     if (canvas) {
@@ -593,13 +605,19 @@
       <p class="tank-age">Tank age: {Math.floor(tankAge)} days</p>
     </div>
 
-    <canvas
-      bind:this={canvas}
-      width={TANK_WIDTH}
-      height={TANK_HEIGHT}
-      onclick={clickFish}
-      class="tank-canvas"
-    ></canvas>
+    <!-- Tank with beanie hiding behind frame -->
+    <div class="tank-frame-wrapper">
+      {#if hiddenBeanie}
+        <HidingBeanie beanie={hiddenBeanie} class="tank-beanie" />
+      {/if}
+      <canvas
+        bind:this={canvas}
+        width={TANK_WIDTH}
+        height={TANK_HEIGHT}
+        onclick={clickFish}
+        class="tank-canvas"
+      ></canvas>
+    </div>
 
     <div class="tank-controls">
       <div class="food-section">
@@ -709,6 +727,11 @@
     margin: 0;
   }
 
+  .tank-frame-wrapper {
+    position: relative;
+    display: inline-block;
+  }
+
   .tank-canvas {
     border: 8px solid #5d4e37;
     border-radius: 8px;
@@ -718,6 +741,19 @@
     box-shadow:
       inset 0 0 30px rgba(0, 0, 0, 0.5),
       0 10px 30px rgba(0, 0, 0, 0.5);
+    position: relative;
+    z-index: 10; /* Frame sits in front of beanie */
+  }
+
+  /* Beanie peeking from behind tank frame corner */
+  :global(.tank-beanie) {
+    bottom: -15px;
+    left: -20px;
+    z-index: 5;
+  }
+
+  :global(.tank-beanie.discovered) {
+    z-index: 15 !important;
   }
 
   .tank-controls {

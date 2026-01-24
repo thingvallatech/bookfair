@@ -1,13 +1,20 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import CloseButton from '$lib/components/CloseButton.svelte';
+  import HidingBeanie from '$lib/components/HidingBeanie.svelte';
   import { playSound } from '$lib/stores/audio';
+  import { registerSpots, getBeaniesForArea, type HidingSpot } from '$lib/stores/beanieHunt';
+  import type { Beanie } from '$lib/stores/beanies';
 
   interface Props {
     onClose: () => void;
   }
 
   let { onClose }: Props = $props();
+
+  // Hidden beanie behind taskbar
+  const hidingSpots: HidingSpot[] = [{ id: 'behind-taskbar' }];
+  let hiddenBeanie = $state<Beanie | null>(null);
 
   let currentTip = $state(0);
   let isAnimating = $state(false);
@@ -101,6 +108,11 @@
   }
 
   onMount(() => {
+    // Register hiding spot
+    registerSpots('clippy', hidingSpots);
+    const beanies = getBeaniesForArea('clippy');
+    hiddenBeanie = beanies.get('behind-taskbar') || null;
+
     // Random tip changes
     const interval = setInterval(() => {
       if (Math.random() > 0.7) {
@@ -178,18 +190,23 @@
       </div>
     </div>
 
-    <!-- Taskbar -->
-    <div class="taskbar">
-      <button class="start-btn">
-        <span class="windows-logo">🪟</span>
-        Start
-      </button>
-      <div class="taskbar-items">
-        <div class="taskbar-item active">📎 Clippy Helper</div>
-      </div>
-      <div class="system-tray">
-        <span>🔊</span>
-        <span class="time">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+    <!-- Taskbar with beanie peeking from behind -->
+    <div class="taskbar-wrapper">
+      {#if hiddenBeanie}
+        <HidingBeanie beanie={hiddenBeanie} class="taskbar-beanie" />
+      {/if}
+      <div class="taskbar">
+        <button class="start-btn">
+          <span class="windows-logo">🪟</span>
+          Start
+        </button>
+        <div class="taskbar-items">
+          <div class="taskbar-item active">📎 Clippy Helper</div>
+        </div>
+        <div class="system-tray">
+          <span>🔊</span>
+          <span class="time">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+        </div>
       </div>
     </div>
   </div>
@@ -466,16 +483,32 @@
   }
 
   /* Taskbar */
-  .taskbar {
+  .taskbar-wrapper {
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
+  }
+
+  .taskbar {
     height: 32px;
     background: linear-gradient(180deg, #245edb 0%, #3168d8 3%, #4e8ad8 95%, #245edb 100%);
     display: flex;
     align-items: center;
     padding: 0 4px;
+    position: relative;
+    z-index: 10; /* Taskbar in front of beanie */
+  }
+
+  /* Beanie peeking from behind taskbar */
+  :global(.taskbar-beanie) {
+    top: -45px;
+    left: 120px;
+    z-index: 5;
+  }
+
+  :global(.taskbar-beanie.discovered) {
+    z-index: 15 !important;
   }
 
   .start-btn {
