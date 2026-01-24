@@ -1,6 +1,8 @@
 <script lang="ts">
   import '../app.css';
   import { onMount } from 'svelte';
+  import { initializeHunt, tagPopupStore } from '$lib/stores/beanieHunt';
+  import BeanieTagPopup from '$lib/components/BeanieTagPopup.svelte';
 
   let { children } = $props();
 
@@ -25,6 +27,9 @@
       audioEnabled = stored === 'true';
       showAudioPrompt = false;
     }
+
+    // Initialize the beanie hunt for this session
+    initializeHunt();
   });
 </script>
 
@@ -61,6 +66,11 @@
         {audioEnabled ? '🔊' : '🔇'}
       </button>
     </div>
+  {/if}
+
+  <!-- Beanie tag popup (global) -->
+  {#if $tagPopupStore}
+    <BeanieTagPopup beanie={$tagPopupStore} />
   {/if}
 </div>
 

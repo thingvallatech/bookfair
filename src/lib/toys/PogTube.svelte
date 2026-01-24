@@ -1,13 +1,23 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import CloseButton from '$lib/components/CloseButton.svelte';
+  import HidingBeanie from '$lib/components/HidingBeanie.svelte';
   import { playSound } from '$lib/stores/audio';
+  import { registerSpots, getBeaniesForArea, type HidingSpot } from '$lib/stores/beanieHunt';
+  import type { Beanie } from '$lib/stores/beanies';
 
   interface Props {
     onClose: () => void;
   }
 
   let { onClose }: Props = $props();
+
+  // Single hiding spot behind the header
+  const hidingSpots: HidingSpot[] = [
+    { id: 'behind-header' },
+  ];
+
+  let hiddenBeanie = $state<Beanie | null>(null);
 
   interface Pog {
     id: number;
@@ -140,6 +150,11 @@
   }
 
   onMount(() => {
+    // Register hiding spots for beanies
+    registerSpots('pogtube', hidingSpots);
+    const beanies = getBeaniesForArea('pogtube');
+    hiddenBeanie = beanies.get('behind-header') || null;
+
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
 
@@ -153,8 +168,13 @@
 <div class="pog-tube">
   <CloseButton {onClose} />
 
-  <header class="header">
-    <h1>POG COLLECTION</h1>
+  <!-- Header with beanie peeking from behind -->
+  <div class="header-wrapper">
+    {#if hiddenBeanie}
+      <HidingBeanie beanie={hiddenBeanie} class="pog-beanie" />
+    {/if}
+    <header class="header">
+      <h1>POG COLLECTION</h1>
     <div class="mode-tabs">
       <button
         class="tab"
@@ -168,6 +188,7 @@
       >Play Slammer!</button>
     </div>
   </header>
+  </div>
 
   {#if mode === 'collection'}
     <div class="collection-view">
@@ -270,9 +291,9 @@
     background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%);
     position: relative;
     display: flex;
+    overflow: hidden; /* Clip beanie peeking from edge */
     flex-direction: column;
     font-family: 'Press Start 2P', monospace;
-    overflow: hidden;
   }
 
   .close-btn {
@@ -290,9 +311,29 @@
     z-index: 100;
   }
 
+  /* Header with beanie hiding behind */
+  .header-wrapper {
+    position: relative;
+  }
+
   .header {
     padding: 20px;
     text-align: center;
+    position: relative;
+    z-index: 10; /* Header sits in front of beanie */
+    background: linear-gradient(180deg, rgba(30, 27, 75, 0.95) 0%, rgba(30, 27, 75, 0) 100%);
+  }
+
+  /* Beanie peeking from right edge of screen */
+  :global(.pog-beanie) {
+    top: 120px;
+    right: -25px; /* Partially off-screen, peeking in */
+    z-index: 5;
+  }
+
+  :global(.pog-beanie.discovered) {
+    right: 10px; /* Slide in when discovered */
+    z-index: 15 !important;
   }
 
   .header h1 {

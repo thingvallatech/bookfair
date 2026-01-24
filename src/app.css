@@ -293,3 +293,18 @@ body {
   0%, 50% { opacity: 1; }
   51%, 100% { opacity: 0; }
 }
+
+/* Beanie Hunt Animations */
+@keyframes beanie-wiggle {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  15% { transform: rotate(-12deg) scale(1.15); }
+  30% { transform: rotate(10deg) scale(1.12); }
+  45% { transform: rotate(-8deg) scale(1.08); }
+  60% { transform: rotate(6deg) scale(1.04); }
+  75% { transform: rotate(-3deg) scale(1.02); }
+}
+
+@keyframes beanie-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}

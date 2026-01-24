@@ -201,6 +201,7 @@
     height: 100%;
     position: relative;
     font-family: 'Segoe UI', Tahoma, sans-serif;
+    overflow: visible;
   }
 
   .close-btn {

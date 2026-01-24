@@ -1,9 +1,12 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount } from 'svelte';
   import { browser } from '$app/environment';
   import RetroBackground from '$lib/components/RetroBackground.svelte';
   import LoadingState from '$lib/components/LoadingState.svelte';
+  import HidingBeanie from '$lib/components/HidingBeanie.svelte';
   import { playSound } from '$lib/stores/audio';
+  import { initializeHunt, registerSpots, getBeaniesForArea, type HidingSpot } from '$lib/stores/beanieHunt';
+  import type { Beanie } from '$lib/stores/beanies';
   import DialUpModem from '$lib/toys/DialUpModem.svelte';
   import KooshBall from '$lib/toys/KooshBall.svelte';
   import KidPix from '$lib/toys/KidPix.svelte';
@@ -16,18 +19,15 @@
   import OregonTrail from '$lib/toys/OregonTrail.svelte';
   import LisaFrank from '$lib/toys/LisaFrank.svelte';
   import Screensaver from '$lib/toys/Screensaver.svelte';
-  import BeanieBaby from '$lib/toys/BeanieBaby.svelte';
   import FishTank from '$lib/toys/FishTank.svelte';
-  import { ALL_BEANIES, pickRandomBeanie, type Beanie } from '$lib/stores/beanies';
 
   // Which object is currently "open" (fullscreen experience)
   let activeObject = $state<string | null>(null);
-  let activeBeanie = $state<Beanie | null>(null);
   let isLoading = $state(false);
   let focusedIndex = $state(0);
 
-  // Base shelf objects (not including random beanies)
-  const baseShelfObjects = [
+  // Shelf objects
+  const shelfObjects = [
     { id: 'modem', name: 'Dial-Up Modem', icon: '📠', desc: 'Connect to the internet' },
     { id: 'koosh', name: 'Koosh Ball', icon: '🔴', desc: 'Squish and throw' },
     { id: 'kidpix', name: 'Kid Pix', icon: '🎨', desc: 'Draw and create' },
@@ -43,15 +43,17 @@
     { id: 'fishtank', name: 'Fish Tank', icon: '🐠', desc: 'Watch them grow', persists: true },
   ];
 
-  // Random beanies for this session (injected into shelf)
-  let sessionBeanies = $state<Beanie[]>([]);
-  let shelfObjects = $state<typeof baseShelfObjects>([...baseShelfObjects]);
+  // Single hiding spot behind the wood shelf
+  const shelfHidingSpots: HidingSpot[] = [
+    { id: 'behind-wood' },
+  ];
+
+  // Beanie assigned to shelf
+  let shelfBeanie = $state<Beanie | null>(null);
 
   const ITEMS_PER_PAGE = 6;
   let currentPage = $state(0);
-
-  // Derived total pages (recalculates when shelfObjects changes)
-  let totalPages = $derived(Math.ceil(shelfObjects.length / ITEMS_PER_PAGE));
+  const totalPages = Math.ceil(shelfObjects.length / ITEMS_PER_PAGE);
 
   function getCurrentPageItems() {
     return shelfObjects.slice(
@@ -60,51 +62,13 @@
     );
   }
 
-  // Initialize random beanies on mount
-  function initBeanies() {
-    // Pick 1-2 random beanies for this session
-    const numBeanies = Math.random() < 0.7 ? 1 : 2;
-    const picked: Beanie[] = [];
-
-    for (let i = 0; i < numBeanies; i++) {
-      const beanie = pickRandomBeanie(picked.map(b => b.name));
-      picked.push(beanie);
-    }
-
-    sessionBeanies = picked;
-
-    // Create beanie shelf items
-    const beanieItems = picked.map((beanie, i) => ({
-      id: `beanie-${i}`,
-      name: beanie.name,
-      icon: '🧸',
-      desc: `the ${beanie.animal}`,
-      isBeanie: true,
-      beanieData: beanie
-    }));
-
-    // Inject beanies at random positions throughout the shelf
-    const combined = [...baseShelfObjects];
-    for (const beanieItem of beanieItems) {
-      const pos = Math.floor(Math.random() * (combined.length + 1));
-      combined.splice(pos, 0, beanieItem as typeof baseShelfObjects[0]);
-    }
-
-    shelfObjects = combined;
-  }
-
-  function openObject(id: string, beanieData?: Beanie) {
+  function openObject(id: string) {
     playSound('click');
     isLoading = true;
 
-    // Brief loading state for visual feedback
     setTimeout(() => {
       activeObject = id;
-      if (beanieData) {
-        activeBeanie = beanieData;
-      }
       isLoading = false;
-      // Push state for back button support
       if (browser) {
         history.pushState({ object: id }, '', `#${id}`);
       }
@@ -114,7 +78,6 @@
   function closeObject() {
     playSound('whoosh', 0.3);
     activeObject = null;
-    activeBeanie = null;
     if (browser) {
       history.pushState({}, '', '/');
     }
@@ -137,14 +100,12 @@
   }
 
   function handleKeydown(e: KeyboardEvent) {
-    // ESC to close
     if (e.key === 'Escape' && activeObject) {
       e.preventDefault();
       closeObject();
       return;
     }
 
-    // Only handle navigation when no object is open
     if (activeObject) return;
 
     const currentItems = getCurrentPageItems();
@@ -186,7 +147,7 @@
       case ' ':
         e.preventDefault();
         const item = currentItems[focusedIndex];
-        if (item) openObject(item.id, (item as any).beanieData);
+        if (item) openObject(item.id);
         break;
     }
   }
@@ -216,15 +177,17 @@
     const deltaX = touchEndX - touchStartX;
     const deltaY = touchEndY - touchStartY;
 
-    // Swipe down to close (at least 100px, more vertical than horizontal)
     if (deltaY > 100 && Math.abs(deltaY) > Math.abs(deltaX)) {
       closeObject();
     }
   }
 
   onMount(() => {
-    // Initialize random beanies for this session
-    initBeanies();
+    // Initialize hunt and register shelf spots
+    initializeHunt();
+    registerSpots('shelf', shelfHidingSpots);
+    const beanies = getBeaniesForArea('shelf');
+    shelfBeanie = beanies.get('behind-wood') || null;
 
     // Check for hash on load
     if (browser && window.location.hash) {
@@ -248,26 +211,20 @@
 <svelte:window on:touchstart={handleTouchStart} on:touchend={handleTouchEnd} />
 
 <div class="crt-container">
-  <!-- Animated background -->
   <RetroBackground />
-
-  <!-- CRT Effects overlay -->
   <div class="crt-effects"></div>
 
-  <!-- Main content -->
   <main class="main-content">
-    <!-- Title -->
     <header class="site-header">
       <h1 class="nes-text is-warning">The Book Fair</h1>
       <p class="subtitle">at the end of the internet</p>
     </header>
 
-    <!-- The Shelf -->
+    <!-- The Shelf - with beanie hiding behind wood plank -->
     <section class="shelf-section">
       <div class="nes-container is-dark with-title shelf-container">
         <p class="title">~ the shelf ~</p>
 
-        <!-- Page navigation -->
         <div class="shelf-nav">
           <button
             class="nav-btn"
@@ -297,15 +254,11 @@
             <button
               class="shelf-item nes-pointer"
               class:focused={focusedIndex === i && !activeObject}
-              onclick={() => openObject(obj.id, (obj as any).beanieData)}
+              onclick={() => openObject(obj.id)}
               title={obj.desc}
               tabindex={focusedIndex === i ? 0 : -1}
             >
-              {#if (obj as any).isBeanie && (obj as any).beanieData?.image}
-                <img src={(obj as any).beanieData.image} alt={obj.name} class="item-beanie-img" />
-              {:else}
-                <div class="item-icon">{obj.icon}</div>
-              {/if}
+              <div class="item-icon">{obj.icon}</div>
               <span class="item-label">{obj.name}</span>
               {#if obj.persists}
                 <span class="persist-badge" title="Saves your progress">💾</span>
@@ -315,13 +268,17 @@
         </div>
       </div>
 
-      <!-- Wood shelf visual -->
-      <div class="shelf-wood">
-        <div class="shelf-shadow"></div>
+      <!-- Wood shelf with beanie peeking from behind -->
+      <div class="shelf-wood-wrapper">
+        {#if shelfBeanie}
+          <HidingBeanie beanie={shelfBeanie} class="shelf-beanie" />
+        {/if}
+        <div class="shelf-wood">
+          <div class="shelf-shadow"></div>
+        </div>
       </div>
     </section>
 
-    <!-- Hint text -->
     <p class="hint nes-text is-disabled">
       {#if activeObject}
         swipe down or press ESC to close
@@ -332,14 +289,12 @@
   </main>
 </div>
 
-<!-- Loading overlay -->
 {#if isLoading}
   <div class="loading-overlay">
     <LoadingState message="Loading..." />
   </div>
 {/if}
 
-<!-- Active object overlay -->
 {#if activeObject === 'modem'}
   <div class="object-view" role="dialog" aria-label="Dial-Up Modem">
     <DialUpModem onClose={closeObject} />
@@ -388,10 +343,6 @@
   <div class="object-view" role="dialog" aria-label="Screensaver">
     <Screensaver onClose={closeObject} />
   </div>
-{:else if activeObject?.startsWith('beanie-') && activeBeanie}
-  <div class="object-view" role="dialog" aria-label={`Beanie Baby: ${activeBeanie.name}`}>
-    <BeanieBaby beanie={activeBeanie} onClose={closeObject} />
-  </div>
 {:else if activeObject === 'fishtank'}
   <div class="object-view" role="dialog" aria-label="Fish Tank">
     <FishTank onClose={closeObject} />
@@ -416,7 +367,6 @@
     padding-top: calc(2rem + env(safe-area-inset-top, 0));
   }
 
-  /* Header */
   .site-header {
     text-align: center;
     margin-bottom: 2rem;
@@ -438,7 +388,6 @@
     letter-spacing: 2px;
   }
 
-  /* Shelf Section */
   .shelf-section {
     width: 100%;
     max-width: 700px;
@@ -448,9 +397,9 @@
   .shelf-container {
     background: rgba(33, 37, 41, 0.95) !important;
     padding: 1.5rem !important;
+    position: relative;
   }
 
-  /* Shelf Navigation */
   .shelf-nav {
     display: flex;
     justify-content: center;
@@ -544,14 +493,6 @@
     filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.5));
   }
 
-  .item-beanie-img {
-    width: 50px;
-    height: 50px;
-    object-fit: contain;
-    filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.5));
-    border-radius: 8px;
-  }
-
   .item-label {
     font-size: 0.45rem;
     color: #fff;
@@ -568,14 +509,19 @@
     opacity: 0.7;
   }
 
-  /* Wood shelf */
+  /* Wood shelf with beanie hiding behind it */
+  .shelf-wood-wrapper {
+    position: relative;
+    margin: 0 0.5rem;
+  }
+
   .shelf-wood {
-    height: 20px;
+    height: 24px;
     background: linear-gradient(180deg, #d4a574 0%, #b8956a 50%, #8b6914 100%);
     border: 4px solid #5c4a1f;
     border-top: none;
-    margin: 0 0.5rem;
     position: relative;
+    z-index: 10; /* Wood sits in front of beanie */
   }
 
   .shelf-shadow {
@@ -589,7 +535,17 @@
     border-radius: 50%;
   }
 
-  /* Hint */
+  /* Beanie peeking from behind the wood shelf */
+  :global(.shelf-beanie) {
+    bottom: -30px; /* Position lower so only head/ears peek above wood */
+    left: 30px;
+    z-index: 5; /* Behind the wood (z-index: 10) */
+  }
+
+  :global(.shelf-beanie.discovered) {
+    z-index: 15 !important; /* Pop in front when discovered */
+  }
+
   .hint {
     margin-top: auto;
     font-size: 0.45rem;
@@ -597,7 +553,6 @@
     padding: 0 1rem;
   }
 
-  /* Loading overlay */
   .loading-overlay {
     position: fixed;
     inset: 0;
@@ -608,7 +563,6 @@
     justify-content: center;
   }
 
-  /* Object overlay */
   .object-view {
     position: fixed;
     inset: 0;
@@ -622,7 +576,6 @@
     to { opacity: 1; }
   }
 
-  /* Mobile adjustments */
   @media (max-width: 600px) {
     .main-content {
       padding: 1rem;
