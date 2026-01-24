@@ -6,6 +6,10 @@
   import { registerSpots, getBeaniesForArea, type HidingSpot } from '$lib/stores/beanieHunt';
   import type { Beanie } from '$lib/stores/beanies';
 
+  // Butterchurn loaded dynamically (browser-only)
+  let butterchurn: any = null;
+  let butterchurnPresets: any = null;
+
   interface Props {
     onClose: () => void;
   }
@@ -17,19 +21,41 @@
   let hiddenBeanie = $state<Beanie | null>(null);
 
   let canvas: HTMLCanvasElement;
-  let ctx: CanvasRenderingContext2D;
   let animationId: number;
   let audioContext: AudioContext | null = null;
   let analyser: AnalyserNode | null = null;
   let gainNode: GainNode | null = null;
   let audioElement: HTMLAudioElement | null = null;
   let sourceNode: MediaElementAudioSourceNode | null = null;
-  let dataArray: Uint8Array;
+  let visualizer: any = null;
+
+  // Curated Milkdrop presets
+  const presetKeys = [
+    'Flexi - mindblob [shiny mix]',
+    'Flexi - infused with the spiral',
+    'Flexi - predator-prey-spirals',
+    'flexi - swing out on the spiral',
+    'flexi - what is the matrix',
+    'Flexi - alien fish pond',
+    'Flexi + Martin - astral projection',
+    'Flexi + Martin - cascading decay swing',
+    'Geiss - Reaction Diffusion 2',
+    'Geiss - Spiral Artifact',
+    'Geiss - Cauldron - painterly 2 (saturation remix)',
+    '_Geiss - Artifact 01',
+    'Eo.S. + Phat - cubetrace - v2',
+    'cope + martin - mother-of-pearl',
+    'Aderrasi - Potion of Spirits',
+    'fiShbRaiN + Flexi - witchcraft 2.0',
+  ];
+  let allPresets: Record<string, any> = {};
 
   let isPlaying = $state(false);
   let isLoading = $state(false);
   let currentSkin = $state(0);
-  let visualizerMode = $state<'bars' | 'wave' | 'circle'>('bars');
+  let currentPreset = $state(0);
+  let shuffleMode = $state(false);
+  let showPresetDropdown = $state(false);
   let volume = $state(75);
   let trackTime = $state(0);
   let trackDuration = $state(150);
@@ -122,7 +148,8 @@
     try {
       audioContext = new AudioContext();
       analyser = audioContext.createAnalyser();
-      analyser.fftSize = 256;
+      analyser.fftSize = 2048;
+      analyser.smoothingTimeConstant = 0.75;
 
       gainNode = audioContext.createGain();
       gainNode.gain.value = volume / 100;
@@ -130,11 +157,53 @@
       analyser.connect(gainNode);
       gainNode.connect(audioContext.destination);
 
-      dataArray = new Uint8Array(analyser.frequencyBinCount);
+      // Initialize Butterchurn visualizer
+      if (canvas && !visualizer && butterchurn) {
+        visualizer = butterchurn.createVisualizer(audioContext, canvas, {
+          width: 300,
+          height: 150,
+          pixelRatio: window.devicePixelRatio || 1,
+        });
+        visualizer.connectAudio(analyser);
+
+        // Load initial preset
+        loadPreset(currentPreset);
+      }
     } catch (e) {
       console.error('Audio init failed:', e);
-      dataArray = new Uint8Array(128);
     }
+  }
+
+  function loadPreset(index: number, blendTime: number = 0.5) {
+    if (!visualizer) return;
+    const key = presetKeys[index];
+    const preset = allPresets[key];
+    if (preset) {
+      visualizer.loadPreset(preset, blendTime);
+    }
+  }
+
+  function nextPreset() {
+    if (shuffleMode) {
+      currentPreset = Math.floor(Math.random() * presetKeys.length);
+    } else {
+      currentPreset = (currentPreset + 1) % presetKeys.length;
+    }
+    loadPreset(currentPreset);
+    playSound('click', 0.2);
+  }
+
+  function prevPreset() {
+    currentPreset = (currentPreset - 1 + presetKeys.length) % presetKeys.length;
+    loadPreset(currentPreset);
+    playSound('click', 0.2);
+  }
+
+  function selectPreset(index: number) {
+    currentPreset = index;
+    loadPreset(currentPreset);
+    showPresetDropdown = false;
+    playSound('click', 0.2);
   }
 
   async function loadAndPlayTrack(index: number) {
@@ -190,103 +259,42 @@
   }
 
   function draw() {
-    if (!ctx || !canvas) return;
+    if (!canvas) return;
 
-    const skin = skins[currentSkin];
-    ctx.fillStyle = skin.bg;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Get audio data or generate fake data
-    if (analyser && isPlaying) {
-      analyser.getByteFrequencyData(dataArray);
-    } else if (isPlaying) {
-      // Fake visualizer data when no audio
-      for (let i = 0; i < dataArray.length; i++) {
-        dataArray[i] = Math.random() * 128 + Math.sin(Date.now() * 0.01 + i * 0.2) * 64 + 64;
-      }
-    } else {
-      dataArray.fill(0);
-    }
-
-    const barCount = 32;
-    const barWidth = canvas.width / barCount - 2;
-
-    if (visualizerMode === 'bars') {
-      for (let i = 0; i < barCount; i++) {
-        const dataIndex = Math.floor(i * dataArray.length / barCount);
-        const value = dataArray[dataIndex];
-        const barHeight = (value / 255) * canvas.height * 0.8;
-
-        const gradient = ctx.createLinearGradient(0, canvas.height, 0, canvas.height - barHeight);
-        gradient.addColorStop(0, skin.accent);
-        gradient.addColorStop(1, skin.text);
-
-        ctx.fillStyle = gradient;
-        ctx.fillRect(
-          i * (barWidth + 2) + 1,
-          canvas.height - barHeight,
-          barWidth,
-          barHeight
-        );
-      }
-    } else if (visualizerMode === 'wave') {
-      ctx.strokeStyle = skin.accent;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-
-      for (let i = 0; i < barCount; i++) {
-        const dataIndex = Math.floor(i * dataArray.length / barCount);
-        const value = dataArray[dataIndex];
-        const y = canvas.height / 2 + ((value - 128) / 128) * canvas.height * 0.4;
-        const x = (i / barCount) * canvas.width;
-
-        if (i === 0) {
-          ctx.moveTo(x, y);
-        } else {
-          ctx.lineTo(x, y);
-        }
-      }
-      ctx.stroke();
-    } else if (visualizerMode === 'circle') {
-      const centerX = canvas.width / 2;
-      const centerY = canvas.height / 2;
-      const baseRadius = Math.min(canvas.width, canvas.height) * 0.25;
-
-      ctx.strokeStyle = skin.accent;
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-
-      for (let i = 0; i <= barCount; i++) {
-        const dataIndex = Math.floor((i % barCount) * dataArray.length / barCount);
-        const value = dataArray[dataIndex];
-        const radius = baseRadius + (value / 255) * baseRadius;
-        const angle = (i / barCount) * Math.PI * 2 - Math.PI / 2;
-        const x = centerX + Math.cos(angle) * radius;
-        const y = centerY + Math.sin(angle) * radius;
-
-        if (i === 0) {
-          ctx.moveTo(x, y);
-        } else {
-          ctx.lineTo(x, y);
-        }
-      }
-      ctx.closePath();
-      ctx.stroke();
+    if (visualizer) {
+      visualizer.render();
     }
 
     animationId = requestAnimationFrame(draw);
   }
 
-  onMount(() => {
+  onMount(async () => {
     // Register hiding spot
     registerSpots('winamp', hidingSpots);
     const beanies = getBeaniesForArea('winamp');
     hiddenBeanie = beanies.get('behind-player') || null;
 
-    ctx = canvas.getContext('2d')!;
-    canvas.width = 275;
-    canvas.height = 100;
-    dataArray = new Uint8Array(128);
+    // Set canvas size for WebGL
+    canvas.width = 300;
+    canvas.height = 150;
+
+    // Dynamically import butterchurn (browser-only)
+    const [bcModule, bcPresetsModule] = await Promise.all([
+      import('butterchurn'),
+      import('butterchurn-presets')
+    ]);
+    butterchurn = bcModule.default;
+    butterchurnPresets = bcPresetsModule.default;
+
+    // Pre-load presets
+    allPresets = {};
+    const allAvailable = butterchurnPresets.getPresets();
+    presetKeys.forEach(key => {
+      if (allAvailable[key]) {
+        allPresets[key] = allAvailable[key];
+      }
+    });
+
     draw();
   });
 
@@ -297,6 +305,7 @@
       audioElement.src = '';
     }
     if (audioContext) audioContext.close();
+    visualizer = null;
   });
 </script>
 
@@ -318,10 +327,29 @@
     <!-- Visualizer -->
     <div class="visualizer-container">
       <canvas bind:this={canvas}></canvas>
-      <div class="viz-modes">
-        <button class:active={visualizerMode === 'bars'} onclick={() => visualizerMode = 'bars'}>▮▮▮</button>
-        <button class:active={visualizerMode === 'wave'} onclick={() => visualizerMode = 'wave'}>∿</button>
-        <button class:active={visualizerMode === 'circle'} onclick={() => visualizerMode = 'circle'}>◯</button>
+      <div class="preset-controls">
+        <button class="preset-nav" onclick={prevPreset}>◀</button>
+        <div class="preset-dropdown-container">
+          <button class="preset-current" onclick={() => showPresetDropdown = !showPresetDropdown}>
+            {presetKeys[currentPreset]?.split(' - ')[1]?.slice(0, 20) || 'Preset'}
+            <span class="dropdown-arrow">▼</span>
+          </button>
+          {#if showPresetDropdown}
+            <div class="preset-dropdown">
+              {#each presetKeys as preset, i}
+                <button
+                  class="preset-option"
+                  class:active={currentPreset === i}
+                  onclick={() => selectPreset(i)}
+                >
+                  {preset.split(' - ')[1] || preset}
+                </button>
+              {/each}
+            </div>
+          {/if}
+        </div>
+        <button class="preset-nav" onclick={nextPreset}>▶</button>
+        <button class="shuffle-btn" class:active={shuffleMode} onclick={() => shuffleMode = !shuffleMode}>🔀</button>
       </div>
     </div>
 
@@ -479,31 +507,115 @@
   canvas {
     display: block;
     width: 100%;
-    height: 100px;
+    height: 150px;
   }
 
-  .viz-modes {
+  .preset-controls {
     position: absolute;
-    top: 4px;
+    bottom: 4px;
+    left: 4px;
     right: 4px;
     display: flex;
-    gap: 2px;
+    gap: 4px;
+    align-items: center;
   }
 
-  .viz-modes button {
-    background: rgba(0, 0, 0, 0.5);
+  .preset-nav {
+    background: rgba(0, 0, 0, 0.7);
     border: 1px solid var(--accent);
     color: var(--text);
     font-size: 0.5rem;
-    padding: 2px 4px;
+    padding: 4px 8px;
     cursor: pointer;
+    min-width: 28px;
+    min-height: 28px;
+  }
+
+  .preset-nav:hover {
+    background: var(--accent);
+    color: var(--bg);
+  }
+
+  .preset-dropdown-container {
+    flex: 1;
+    position: relative;
+  }
+
+  .preset-current {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid var(--accent);
+    color: var(--text);
+    font-size: 0.4rem;
+    padding: 4px 8px;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 28px;
+    font-family: inherit;
+  }
+
+  .dropdown-arrow {
+    font-size: 0.35rem;
+    opacity: 0.7;
+  }
+
+  .preset-dropdown {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.95);
+    border: 1px solid var(--accent);
+    border-bottom: none;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 100;
+  }
+
+  .preset-option {
+    width: 100%;
+    background: none;
+    border: none;
+    border-bottom: 1px solid #333;
+    color: var(--text);
+    font-size: 0.35rem;
+    padding: 8px;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+  }
+
+  .preset-option:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .preset-option.active {
+    background: var(--accent);
+    color: var(--bg);
+  }
+
+  .shuffle-btn {
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid var(--accent);
+    color: var(--text);
+    font-size: 0.6rem;
+    padding: 4px 8px;
+    cursor: pointer;
+    min-width: 28px;
+    min-height: 28px;
     opacity: 0.5;
   }
 
-  .viz-modes button.active {
+  .shuffle-btn:hover {
+    opacity: 0.8;
+  }
+
+  .shuffle-btn.active {
     opacity: 1;
     background: var(--accent);
-    color: var(--bg);
   }
 
   .track-info {
