@@ -302,11 +302,23 @@
       {#if phase === 'theme'}
         Pick a theme to begin
       {:else if phase === 'color'}
-        Pick a color
+        {#if isAnimating}
+          {animationCount}...
+        {:else}
+          Pick a color
+        {/if}
       {:else if phase === 'number'}
-        Pick a number
+        {#if isAnimating}
+          {animationCount}...
+        {:else}
+          Pick a number
+        {/if}
       {:else}
-        Your fortune awaits...
+        {#if !revealedFortune}
+          Tap to reveal!
+        {:else}
+          Your fortune:
+        {/if}
       {/if}
     </p>
   </div>
@@ -317,6 +329,8 @@
 </div>
 
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
+
   .cootie-container {
     position: fixed;
     inset: 0;
@@ -369,7 +383,20 @@
     transition: transform 0.3s ease;
   }
 
-  .flap-outer,
+  .flap-outer {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    backface-visibility: hidden;
+    width: 60px;
+    text-align: center;
+  }
+
   .flap-inner {
     position: absolute;
     display: flex;
@@ -377,6 +404,7 @@
     justify-content: center;
     font-size: 1.5rem;
     font-weight: bold;
+    color: #333;
     backface-visibility: hidden;
   }
 
@@ -392,9 +420,8 @@
   }
 
   .flap-top .flap-outer {
-    top: 30px;
-    left: -10px;
-    color: #e74c3c;
+    top: 25px;
+    left: -30px;
   }
 
   .flap-right {
@@ -409,8 +436,7 @@
 
   .flap-right .flap-outer {
     top: -10px;
-    left: -60px;
-    color: #3498db;
+    left: -55px;
   }
 
   .flap-bottom {
@@ -424,9 +450,8 @@
   }
 
   .flap-bottom .flap-outer {
-    bottom: 30px;
-    left: -10px;
-    color: #f1c40f;
+    bottom: 25px;
+    left: -30px;
   }
 
   .flap-left {
@@ -441,8 +466,7 @@
 
   .flap-left .flap-outer {
     top: -10px;
-    right: -60px;
-    color: #2ecc71;
+    right: -55px;
   }
 
   /* Open animations */
