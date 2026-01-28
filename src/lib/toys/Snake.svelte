@@ -33,6 +33,9 @@
   // Apple position
   let apple = $state<{ x: number; y: number }>({ x: 0, y: 0 });
 
+  // Touch device detection
+  let isTouchDevice = $state(false);
+
   let gameLoop: number;
   let gameContainer: HTMLDivElement;
 
@@ -209,45 +212,42 @@
     }
   }
 
-  // Touch controls
-  let touchStartX = 0;
-  let touchStartY = 0;
-
-  function handleTouchStart(e: TouchEvent) {
-    touchStartX = e.touches[0].clientX;
-    touchStartY = e.touches[0].clientY;
-  }
-
-  function handleTouchEnd(e: TouchEvent) {
+  // D-pad control handler
+  function handleDirection(dir: 'up' | 'down' | 'left' | 'right') {
     if (gameState === 'ready' || gameState === 'gameover') {
       startGame();
       return;
     }
 
+    if (gameState === 'paused') {
+      gameState = 'playing';
+      runGameLoop();
+      return;
+    }
+
     if (gameState !== 'playing') return;
 
-    const touchEndX = e.changedTouches[0].clientX;
-    const touchEndY = e.changedTouches[0].clientY;
-    const deltaX = touchEndX - touchStartX;
-    const deltaY = touchEndY - touchStartY;
+    playSound('click', 0.2);
 
-    const minSwipe = 30;
-
-    if (Math.abs(deltaX) > Math.abs(deltaY)) {
-      // Horizontal swipe
-      if (deltaX > minSwipe && direction !== 'left') {
-        nextDirection = 'right';
-      } else if (deltaX < -minSwipe && direction !== 'right') {
-        nextDirection = 'left';
-      }
-    } else {
-      // Vertical swipe
-      if (deltaY > minSwipe && direction !== 'up') {
-        nextDirection = 'down';
-      } else if (deltaY < -minSwipe && direction !== 'down') {
-        nextDirection = 'up';
-      }
+    switch (dir) {
+      case 'up':
+        if (direction !== 'down') nextDirection = 'up';
+        break;
+      case 'down':
+        if (direction !== 'up') nextDirection = 'down';
+        break;
+      case 'left':
+        if (direction !== 'right') nextDirection = 'left';
+        break;
+      case 'right':
+        if (direction !== 'left') nextDirection = 'right';
+        break;
     }
+  }
+
+  // Prevent touch events from triggering browser gestures
+  function preventGesture(e: TouchEvent) {
+    e.preventDefault();
   }
 
   function calculateGrid() {
@@ -256,17 +256,22 @@
     const rect = gameContainer.getBoundingClientRect();
     const padding = 40;
     const availableWidth = rect.width - padding;
-    const availableHeight = rect.height - padding - 100; // Account for header/score
+    // Account for header, D-pad controls on mobile
+    const controlsHeight = isTouchDevice ? 180 : 60;
+    const availableHeight = rect.height - padding - controlsHeight;
 
     gridWidth = Math.floor(availableWidth / GRID_SIZE);
     gridHeight = Math.floor(availableHeight / GRID_SIZE);
 
     // Ensure minimum size
-    gridWidth = Math.max(15, Math.min(30, gridWidth));
-    gridHeight = Math.max(10, Math.min(20, gridHeight));
+    gridWidth = Math.max(12, Math.min(30, gridWidth));
+    gridHeight = Math.max(8, Math.min(20, gridHeight));
   }
 
   onMount(() => {
+    // Detect touch device
+    isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
     // Load high score
     try {
       const saved = localStorage.getItem('snake-highscore');
@@ -279,9 +284,19 @@
     window.addEventListener('keydown', handleKeydown);
     window.addEventListener('resize', calculateGrid);
 
+    // Prevent browser gestures on the game container with passive: false
+    if (gameContainer) {
+      gameContainer.addEventListener('touchstart', preventGesture, { passive: false });
+      gameContainer.addEventListener('touchmove', preventGesture, { passive: false });
+    }
+
     return () => {
       window.removeEventListener('keydown', handleKeydown);
       window.removeEventListener('resize', calculateGrid);
+      if (gameContainer) {
+        gameContainer.removeEventListener('touchstart', preventGesture);
+        gameContainer.removeEventListener('touchmove', preventGesture);
+      }
       clearTimeout(gameLoop);
     };
   });
@@ -293,9 +308,8 @@
 
 <div
   class="snake-container"
+  class:touch-device={isTouchDevice}
   bind:this={gameContainer}
-  ontouchstart={handleTouchStart}
-  ontouchend={handleTouchEnd}
 >
   <CloseButton {onClose} />
 
@@ -351,19 +365,28 @@
     {#if gameState === 'ready'}
       <div class="overlay">
         <div class="overlay-content">
-          <p class="instruction">Use arrow keys or WASD to move</p>
-          <p class="instruction">Swipe on mobile</p>
+          {#if isTouchDevice}
+            <p class="instruction">Use the D-pad below to move</p>
+          {:else}
+            <p class="instruction">Use arrow keys or WASD to move</p>
+          {/if}
           <button class="start-btn nes-btn is-success" onclick={startGame}>
             START
           </button>
-          <p class="hint">or press SPACE</p>
+          {#if !isTouchDevice}
+            <p class="hint">or press SPACE</p>
+          {/if}
         </div>
       </div>
     {:else if gameState === 'paused'}
       <div class="overlay">
         <div class="overlay-content">
           <h2>PAUSED</h2>
-          <p class="hint">Press SPACE to continue</p>
+          {#if isTouchDevice}
+            <p class="hint">Tap a direction to continue</p>
+          {:else}
+            <p class="hint">Press SPACE to continue</p>
+          {/if}
         </div>
       </div>
     {:else if gameState === 'gameover'}
@@ -377,19 +400,63 @@
           <button class="start-btn nes-btn is-primary" onclick={startGame}>
             PLAY AGAIN
           </button>
-          <p class="hint">or press SPACE</p>
         </div>
       </div>
     {/if}
   </div>
 
-  <div class="controls-hint">
-    {#if gameState === 'playing'}
-      <span>SPACE to pause · ESC to exit</span>
-    {:else}
-      <span>ESC to exit</span>
-    {/if}
-  </div>
+  <!-- D-pad controls for touch devices -->
+  {#if isTouchDevice}
+    <div class="dpad-container">
+      <div class="dpad">
+        <button
+          class="dpad-btn up"
+          ontouchstart={() => handleDirection('up')}
+          aria-label="Move up"
+        >
+          ▲
+        </button>
+        <button
+          class="dpad-btn left"
+          ontouchstart={() => handleDirection('left')}
+          aria-label="Move left"
+        >
+          ◀
+        </button>
+        <div class="dpad-center"></div>
+        <button
+          class="dpad-btn right"
+          ontouchstart={() => handleDirection('right')}
+          aria-label="Move right"
+        >
+          ▶
+        </button>
+        <button
+          class="dpad-btn down"
+          ontouchstart={() => handleDirection('down')}
+          aria-label="Move down"
+        >
+          ▼
+        </button>
+      </div>
+      {#if gameState === 'playing'}
+        <button
+          class="pause-btn"
+          onclick={() => { gameState = 'paused'; clearTimeout(gameLoop); }}
+        >
+          ⏸️
+        </button>
+      {/if}
+    </div>
+  {:else}
+    <div class="controls-hint">
+      {#if gameState === 'playing'}
+        <span>SPACE to pause · ESC to exit</span>
+      {:else}
+        <span>ESC to exit</span>
+      {/if}
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -403,18 +470,23 @@
     padding: 20px;
     box-sizing: border-box;
     overflow: hidden;
+    /* Prevent all browser touch gestures */
     touch-action: none;
+    overscroll-behavior: contain;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
   }
 
   .game-header {
     text-align: center;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
   }
 
   .title {
     font-size: 1.5rem;
     color: #4ade80;
-    margin: 0 0 10px 0;
+    margin: 0 0 8px 0;
     text-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
   }
 
@@ -442,6 +514,7 @@
       0 0 20px rgba(74, 222, 128, 0.3),
       inset 0 0 20px rgba(0, 0, 0, 0.5);
     overflow: hidden;
+    flex-shrink: 0;
   }
 
   .grid-bg {
@@ -573,6 +646,112 @@
     color: #666;
   }
 
+  /* D-pad controls */
+  .dpad-container {
+    margin-top: 16px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .dpad {
+    display: grid;
+    grid-template-columns: repeat(3, 52px);
+    grid-template-rows: repeat(3, 52px);
+    gap: 4px;
+  }
+
+  .dpad-btn {
+    width: 52px;
+    height: 52px;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(145deg, #2a2a4a, #1a1a2e);
+    color: #4ade80;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow:
+      0 4px 8px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    transition: all 0.1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .dpad-btn:active {
+    transform: scale(0.95);
+    background: linear-gradient(145deg, #1a1a2e, #2a2a4a);
+    box-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .dpad-btn.up {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .dpad-btn.left {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .dpad-btn.right {
+    grid-column: 3;
+    grid-row: 2;
+  }
+
+  .dpad-btn.down {
+    grid-column: 2;
+    grid-row: 3;
+  }
+
+  .dpad-center {
+    grid-column: 2;
+    grid-row: 2;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: #0a0a15;
+  }
+
+  .pause-btn {
+    width: 52px;
+    height: 52px;
+    border: none;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #2a2a4a, #1a1a2e);
+    color: #f7d51d;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow:
+      0 4px 8px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .pause-btn:active {
+    transform: scale(0.95);
+  }
+
+  /* Touch device adjustments */
+  .touch-device .game-header {
+    margin-bottom: 8px;
+  }
+
+  .touch-device .title {
+    font-size: 1.2rem;
+  }
+
+  .touch-device .scores {
+    font-size: 0.6rem;
+  }
+
   @media (max-width: 500px) {
     .snake-container {
       padding: 10px;
@@ -584,6 +763,18 @@
 
     .scores {
       font-size: 0.6rem;
+    }
+
+    .dpad {
+      grid-template-columns: repeat(3, 48px);
+      grid-template-rows: repeat(3, 48px);
+    }
+
+    .dpad-btn,
+    .dpad-center,
+    .pause-btn {
+      width: 48px;
+      height: 48px;
     }
   }
 </style>
