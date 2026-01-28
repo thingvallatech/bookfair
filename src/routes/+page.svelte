@@ -21,6 +21,7 @@
   import Screensaver from '$lib/toys/Screensaver.svelte';
   import FishTank from '$lib/toys/FishTank.svelte';
   import Snake from '$lib/toys/Snake.svelte';
+  import SlimeVolleyball from '$lib/toys/SlimeVolleyball.svelte';
 
   // Which object is currently "open" (fullscreen experience)
   let activeObject = $state<string | null>(null);
@@ -43,6 +44,7 @@
     { id: 'screensaver', name: 'Screensaver', icon: '🖥️', desc: 'Flying toasters' },
     { id: 'fishtank', name: 'Fish Tank', icon: '🐠', desc: 'Watch them grow', persists: true },
     { id: 'snake', name: 'Snake', icon: '🐍', desc: 'Eat apples, grow longer', persists: true },
+    { id: 'slimevolleyball', name: 'Slime Volleyball', icon: '🏐', desc: 'Beat the AI' },
   ];
 
   // Single hiding spot behind the wood shelf
@@ -352,6 +354,10 @@
 {:else if activeObject === 'snake'}
   <div class="object-view" role="dialog" aria-label="Snake">
     <Snake onClose={closeObject} />
+  </div>
+{:else if activeObject === 'slimevolleyball'}
+  <div class="object-view" role="dialog" aria-label="Slime Volleyball">
+    <SlimeVolleyball onClose={closeObject} />
   </div>
 {/if}
 
