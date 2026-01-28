@@ -89,11 +89,49 @@
 
   // Game state
   let selectedTheme = $state<Theme | null>(null);
+  let selectedColorIndex = $state<number | null>(null);
+  let animationCount = $state(0);
+  let isAnimating = $state(false);
+  let openState = $state<'closed' | 'horizontal' | 'vertical'>('closed');
 
   function selectTheme(theme: Theme) {
     selectedTheme = theme;
     phase = 'color';
     playSound('click');
+  }
+
+  function selectColor(index: number) {
+    if (isAnimating || !selectedTheme) return;
+
+    selectedColorIndex = index;
+    const colorName = selectedTheme.colorNames[index];
+    const letterCount = colorName.length;
+
+    isAnimating = true;
+    animationCount = 0;
+
+    playSound('pop');
+    animateOpenClose(letterCount, () => {
+      phase = 'number';
+      isAnimating = false;
+    });
+  }
+
+  function animateOpenClose(times: number, onComplete: () => void) {
+    if (animationCount >= times) {
+      openState = 'closed';
+      onComplete();
+      return;
+    }
+
+    // Alternate between horizontal and vertical
+    openState = animationCount % 2 === 0 ? 'horizontal' : 'vertical';
+    animationCount++;
+    playSound('whoosh', 0.2);
+
+    setTimeout(() => {
+      animateOpenClose(times, onComplete);
+    }, 400);
   }
 
   // Game phases
@@ -127,25 +165,47 @@
       </div>
     {/if}
 
+    {#if phase === 'color' && selectedTheme}
+      <div class="color-buttons">
+        {#each selectedTheme.colors as color, i}
+          <button
+            class="color-btn"
+            style="background: {color}"
+            onclick={() => selectColor(i)}
+            disabled={isAnimating}
+          >
+            {selectedTheme.colorNames[i]}
+          </button>
+        {/each}
+      </div>
+    {/if}
+
     <div class="catcher-wrapper">
       <div class="catcher-3d">
-        <div class="catcher">
-          <div class="flap flap-top">
-            <div class="flap-outer">1</div>
-            <div class="flap-inner">?</div>
-          </div>
-          <div class="flap flap-right">
-            <div class="flap-outer">2</div>
-            <div class="flap-inner">?</div>
-          </div>
-          <div class="flap flap-bottom">
-            <div class="flap-outer">3</div>
-            <div class="flap-inner">?</div>
-          </div>
-          <div class="flap flap-left">
-            <div class="flap-outer">4</div>
-            <div class="flap-inner">?</div>
-          </div>
+        <div class="catcher" class:open-horizontal={openState === 'horizontal'} class:open-vertical={openState === 'vertical'}>
+          {#if selectedTheme}
+            <div class="flap flap-top" style="--flap-color: {selectedTheme.colors[0]}">
+              <div class="flap-outer">{selectedTheme.colorNames[0]}</div>
+              <div class="flap-inner">1</div>
+            </div>
+            <div class="flap flap-right" style="--flap-color: {selectedTheme.colors[1]}">
+              <div class="flap-outer">{selectedTheme.colorNames[1]}</div>
+              <div class="flap-inner">2</div>
+            </div>
+            <div class="flap flap-bottom" style="--flap-color: {selectedTheme.colors[2]}">
+              <div class="flap-outer">{selectedTheme.colorNames[2]}</div>
+              <div class="flap-inner">3</div>
+            </div>
+            <div class="flap flap-left" style="--flap-color: {selectedTheme.colors[3]}">
+              <div class="flap-outer">{selectedTheme.colorNames[3]}</div>
+              <div class="flap-inner">4</div>
+            </div>
+          {:else}
+            <div class="flap flap-top"><div class="flap-outer">?</div></div>
+            <div class="flap flap-right"><div class="flap-outer">?</div></div>
+            <div class="flap flap-bottom"><div class="flap-outer">?</div></div>
+            <div class="flap flap-left"><div class="flap-outer">?</div></div>
+          {/if}
         </div>
       </div>
     </div>
@@ -239,7 +299,7 @@
     transform: translateX(-50%);
     border-left: 50px solid transparent;
     border-right: 50px solid transparent;
-    border-bottom: 86px solid #fff8e7;
+    border-bottom: 86px solid var(--flap-color, #fff8e7);
     transform-origin: bottom center;
   }
 
@@ -255,7 +315,7 @@
     transform: translateY(-50%);
     border-top: 50px solid transparent;
     border-bottom: 50px solid transparent;
-    border-left: 86px solid #fff8e7;
+    border-left: 86px solid var(--flap-color, #fff8e7);
     transform-origin: left center;
   }
 
@@ -271,7 +331,7 @@
     transform: translateX(-50%);
     border-left: 50px solid transparent;
     border-right: 50px solid transparent;
-    border-top: 86px solid #fff8e7;
+    border-top: 86px solid var(--flap-color, #fff8e7);
     transform-origin: top center;
   }
 
@@ -287,7 +347,7 @@
     transform: translateY(-50%);
     border-top: 50px solid transparent;
     border-bottom: 50px solid transparent;
-    border-right: 86px solid #fff8e7;
+    border-right: 86px solid var(--flap-color, #fff8e7);
     transform-origin: right center;
   }
 
@@ -295,6 +355,23 @@
     top: -10px;
     right: -60px;
     color: #2ecc71;
+  }
+
+  /* Open animations */
+  .catcher.open-horizontal .flap-top {
+    transform: translateX(-50%) rotateX(-160deg);
+  }
+
+  .catcher.open-horizontal .flap-bottom {
+    transform: translateX(-50%) rotateX(160deg);
+  }
+
+  .catcher.open-vertical .flap-left {
+    transform: translateY(-50%) rotateY(160deg);
+  }
+
+  .catcher.open-vertical .flap-right {
+    transform: translateY(-50%) rotateY(-160deg);
   }
 
   .instruction {
@@ -329,6 +406,36 @@
   .theme-btn:hover {
     transform: scale(1.05);
     box-shadow: 4px 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .color-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    width: 100%;
+    max-width: 300px;
+  }
+
+  .color-btn {
+    font-family: 'Patrick Hand', cursive;
+    font-size: 1.1rem;
+    padding: 1rem;
+    border: 3px solid rgba(255, 255, 255, 0.5);
+    border-radius: 12px;
+    color: white;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .color-btn:hover:not(:disabled) {
+    transform: scale(1.05);
+    border-color: white;
+  }
+
+  .color-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   :global(.cootie-beanie) {
