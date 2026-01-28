@@ -10,7 +10,60 @@
     onClose: () => void;
   }
 
+  interface Category {
+    name: string;
+    options: string[];
+    defaults: string[];
+  }
+
+  const DEFAULT_CATEGORIES: Category[] = [
+    {
+      name: 'Live in a...',
+      options: ['Mansion', 'Apartment', 'Shack', 'House'],
+      defaults: ['Mansion', 'Apartment', 'Shack', 'House']
+    },
+    {
+      name: 'Marry',
+      options: ['JTT', 'Devon Sawa', 'Leo DiCaprio', 'Your crush'],
+      defaults: ['JTT', 'Devon Sawa', 'Leo DiCaprio', 'Your crush']
+    },
+    {
+      name: 'Drive a',
+      options: ['Lamborghini', 'Geo Metro', 'VW Bug', 'Minivan'],
+      defaults: ['Lamborghini', 'Geo Metro', 'VW Bug', 'Minivan']
+    },
+    {
+      name: 'Work as a',
+      options: ['Veterinarian', 'Movie Star', 'Teacher', 'Garbage Collector'],
+      defaults: ['Veterinarian', 'Movie Star', 'Teacher', 'Garbage Collector']
+    },
+    {
+      name: 'Have kids',
+      options: ['0', '2', '7', '15'],
+      defaults: ['0', '2', '7', '15']
+    },
+    {
+      name: 'Live in',
+      options: ['Hollywood', 'Paris', 'Your hometown', 'The Moon'],
+      defaults: ['Hollywood', 'Paris', 'Your hometown', 'The Moon']
+    },
+  ];
+
   let { onClose }: Props = $props();
+
+  // Game state
+  let categories = $state<Category[]>(
+    DEFAULT_CATEGORIES.map(c => ({ ...c, options: [...c.options] }))
+  );
+
+  // Track which options are eliminated (categoryIndex -> Set of optionIndices)
+  let eliminated = $state<Map<number, Set<number>>>(new Map());
+
+  // Final results (categoryIndex -> winning optionIndex)
+  let results = $state<Map<number, number>>(new Map());
+
+  // Magic number from spiral
+  let magicNumber = $state(0);
 
   // Game phases
   type Phase = 'setup' | 'spiral' | 'elimination' | 'result';
