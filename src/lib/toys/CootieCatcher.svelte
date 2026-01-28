@@ -134,6 +134,26 @@
     }, 400);
   }
 
+  let selectedNumber = $state<number | null>(null);
+  let visibleNumbers = $derived(
+    openState === 'horizontal' ? [1, 2, 3, 4] : [5, 6, 7, 8]
+  );
+
+  function selectNumber(num: number) {
+    if (isAnimating) return;
+
+    selectedNumber = num;
+    isAnimating = true;
+    animationCount = 0;
+
+    playSound('pop');
+    animateOpenClose(num, () => {
+      phase = 'fortune';
+      isAnimating = false;
+      playSound('ding', 0.5);
+    });
+  }
+
   // Game phases
   type Phase = 'theme' | 'color' | 'number' | 'fortune';
   let phase = $state<Phase>('theme');
@@ -175,6 +195,20 @@
             disabled={isAnimating}
           >
             {selectedTheme.colorNames[i]}
+          </button>
+        {/each}
+      </div>
+    {/if}
+
+    {#if phase === 'number' && selectedTheme}
+      <div class="number-buttons">
+        {#each visibleNumbers as num}
+          <button
+            class="number-btn"
+            onclick={() => selectNumber(num)}
+            disabled={isAnimating}
+          >
+            {num}
           </button>
         {/each}
       </div>
@@ -434,6 +468,41 @@
   }
 
   .color-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .number-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    width: 100%;
+    max-width: 200px;
+  }
+
+  .number-btn {
+    font-family: 'Patrick Hand', cursive;
+    font-size: 2rem;
+    padding: 1rem;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 70px;
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .number-btn:hover:not(:disabled) {
+    transform: scale(1.1);
+  }
+
+  .number-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
