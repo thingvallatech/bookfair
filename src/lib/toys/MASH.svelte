@@ -69,6 +69,10 @@
   let editingCell = $state<{ cat: number; opt: number } | null>(null);
   let editValue = $state('');
 
+  // Elimination animation state
+  let currentHighlight = $state<{ cat: number; opt: number } | null>(null);
+  let eliminationSpeed = $state(300); // ms between steps
+
   function startEditing(catIndex: number, optIndex: number) {
     editingCell = { cat: catIndex, opt: optIndex };
     editValue = categories[catIndex].options[optIndex];
@@ -173,8 +177,119 @@
   }
 
   function startElimination() {
-    // Will be implemented in next task
-    console.log('Starting elimination with magic number:', magicNumber);
+    // Initialize eliminated sets for each category
+    eliminated = new Map();
+    for (let i = 0; i < categories.length; i++) {
+      eliminated.set(i, new Set());
+    }
+    results = new Map();
+
+    runEliminationStep(0, 0, 1);
+  }
+
+  function getNextPosition(catIndex: number, optIndex: number): { cat: number; opt: number } | null {
+    // Find next non-eliminated option
+    let cat = catIndex;
+    let opt = optIndex;
+
+    // Try to find next valid position
+    for (let attempts = 0; attempts < categories.length * 4 + 1; attempts++) {
+      opt++;
+      if (opt >= 4) {
+        opt = 0;
+        cat++;
+        if (cat >= categories.length) {
+          cat = 0;
+        }
+      }
+
+      // Check if this category still has options to eliminate
+      const catEliminated = eliminated.get(cat) || new Set();
+      if (catEliminated.size < 3 && !catEliminated.has(opt)) {
+        return { cat, opt };
+      }
+    }
+
+    return null;
+  }
+
+  function countRemainingOptions(): number {
+    let count = 0;
+    for (let i = 0; i < categories.length; i++) {
+      const catEliminated = eliminated.get(i) || new Set();
+      count += 4 - catEliminated.size;
+    }
+    return count;
+  }
+
+  function runEliminationStep(catIndex: number, optIndex: number, count: number) {
+    // Check if elimination is complete (each category has exactly 1 remaining)
+    let allDone = true;
+    for (let i = 0; i < categories.length; i++) {
+      const catEliminated = eliminated.get(i) || new Set();
+      if (catEliminated.size < 3) {
+        allDone = false;
+        break;
+      }
+    }
+
+    if (allDone) {
+      // Find winners for each category
+      for (let i = 0; i < categories.length; i++) {
+        const catEliminated = eliminated.get(i) || new Set();
+        for (let j = 0; j < 4; j++) {
+          if (!catEliminated.has(j)) {
+            results.set(i, j);
+            break;
+          }
+        }
+      }
+      currentHighlight = null;
+      playSound('victory', 0.5);
+      setTimeout(() => {
+        phase = 'result';
+      }, 500);
+      return;
+    }
+
+    // Highlight current position
+    currentHighlight = { cat: catIndex, opt: optIndex };
+
+    // Check if we should eliminate this option
+    const catEliminated = eliminated.get(catIndex) || new Set();
+    const isEliminated = catEliminated.has(optIndex);
+    const categoryFull = catEliminated.size >= 3;
+
+    if (count === magicNumber && !isEliminated && !categoryFull) {
+      // Eliminate this option
+      setTimeout(() => {
+        playSound('hit', 0.3);
+        catEliminated.add(optIndex);
+        eliminated.set(catIndex, catEliminated);
+        eliminated = new Map(eliminated); // Trigger reactivity
+
+        // Speed up as we progress
+        eliminationSpeed = Math.max(100, eliminationSpeed - 10);
+
+        // Find next position and continue
+        const next = getNextPosition(catIndex, optIndex);
+        if (next) {
+          setTimeout(() => runEliminationStep(next.cat, next.opt, 1), eliminationSpeed);
+        } else {
+          // Shouldn't happen, but just in case
+          runEliminationStep(catIndex, optIndex, 1);
+        }
+      }, eliminationSpeed);
+    } else {
+      // Move to next position
+      setTimeout(() => {
+        playSound('click', 0.1);
+        const next = getNextPosition(catIndex, optIndex);
+        if (next) {
+          runEliminationStep(next.cat, next.opt, isEliminated || categoryFull ? count : count + 1);
+        }
+      }, eliminationSpeed / 2);
+    }
   }
 
   // Game phases
@@ -275,7 +390,30 @@
           {/if}
         </div>
       {:else if phase === 'elimination'}
-        <p>Elimination phase coming soon...</p>
+        <div class="elimination-phase">
+          <p class="counting-label">Counting by {magicNumber}...</p>
+
+          <div class="categories elimination-view">
+            {#each categories as category, catIndex}
+              <div class="category-row">
+                <span class="category-label">{category.name}</span>
+                <div class="options">
+                  {#each category.options as option, optIndex}
+                    {@const isElim = eliminated.get(catIndex)?.has(optIndex)}
+                    {@const isHighlighted = currentHighlight?.cat === catIndex && currentHighlight?.opt === optIndex}
+                    <span
+                      class="option-display"
+                      class:eliminated={isElim}
+                      class:highlighted={isHighlighted}
+                    >
+                      {option}
+                    </span>
+                  {/each}
+                </div>
+              </div>
+            {/each}
+          </div>
+        </div>
       {:else if phase === 'result'}
         <p>Result phase coming soon...</p>
       {/if}
@@ -517,6 +655,51 @@
   .draw-btn:hover {
     background: #3a8c4d;
     transform: scale(1.05);
+  }
+
+  .elimination-phase {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .counting-label {
+    font-size: 1.3rem;
+    color: #c41e3a;
+    text-align: center;
+    margin: 0;
+    animation: pulse 0.5s ease-in-out infinite;
+  }
+
+  .elimination-view .option-display {
+    font-size: 1rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .option-display.highlighted {
+    background: rgba(44, 90, 160, 0.3);
+    transform: scale(1.1);
+  }
+
+  .option-display.eliminated {
+    color: #999;
+    text-decoration: line-through;
+    text-decoration-color: #c41e3a;
+    text-decoration-thickness: 2px;
+  }
+
+  .option-display.eliminated::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 2px;
+    background: #c41e3a;
+    transform: rotate(-5deg);
   }
 
   @keyframes pulse {
