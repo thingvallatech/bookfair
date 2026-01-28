@@ -337,6 +337,13 @@
       <div class="hole"></div>
     </div>
 
+    <div class="margin-doodles">
+      <span class="doodle doodle-star">★</span>
+      <span class="doodle doodle-heart">♥</span>
+      <span class="doodle doodle-spiral">@</span>
+      <span class="doodle doodle-cool-s">𝕊</span>
+    </div>
+
     <div class="paper-content">
       <h1 class="title">M.A.S.H.</h1>
       <p class="subtitle">Mansion • Apartment • Shack • House</p>
@@ -515,6 +522,42 @@
     background: #8b7355;
     border-radius: 50%;
     box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.3);
+  }
+
+  .margin-doodles {
+    position: absolute;
+    right: 10px;
+    top: 60px;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  .doodle {
+    font-size: 1.5rem;
+    color: #2c5aa0;
+    transform: rotate(var(--rotation, 0deg));
+  }
+
+  .doodle-star {
+    --rotation: 15deg;
+    color: #f1c40f;
+  }
+
+  .doodle-heart {
+    --rotation: -10deg;
+    color: #e74c3c;
+  }
+
+  .doodle-spiral {
+    --rotation: 5deg;
+  }
+
+  .doodle-cool-s {
+    --rotation: -5deg;
+    font-family: serif;
   }
 
   .paper-content {
@@ -828,6 +871,12 @@
 
     .title {
       font-size: 2rem;
+    }
+  }
+
+  @media (max-width: 400px) {
+    .margin-doodles {
+      display: none;
     }
   }
 </style>
