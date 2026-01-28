@@ -292,6 +292,26 @@
     }
   }
 
+  function getResultText(): string {
+    const home = categories[0].options[results.get(0) || 0];
+    const spouse = categories[1].options[results.get(1) || 0];
+    const car = categories[2].options[results.get(2) || 0];
+    const job = categories[3].options[results.get(3) || 0];
+    const kids = categories[4].options[results.get(4) || 0];
+    const location = categories[5].options[results.get(5) || 0];
+
+    return `You will live in a ${home} in ${location}, married to ${spouse}. You'll drive a ${car}, work as a ${job}, and have ${kids} kids!`;
+  }
+
+  function playAgain() {
+    phase = 'setup';
+    eliminated = new Map();
+    results = new Map();
+    spiralProgress = 0;
+    eliminationSpeed = 300;
+    playSound('pop', 0.3);
+  }
+
   // Game phases
   type Phase = 'setup' | 'spiral' | 'elimination' | 'result';
   let phase = $state<Phase>('setup');
@@ -415,7 +435,27 @@
           </div>
         </div>
       {:else if phase === 'result'}
-        <p>Result phase coming soon...</p>
+        <div class="result-phase">
+          <h2 class="result-title">Your Future! ✨</h2>
+
+          <div class="result-categories">
+            {#each categories as category, catIndex}
+              {@const winnerIndex = results.get(catIndex) || 0}
+              <div class="result-row">
+                <span class="result-label">{category.name}</span>
+                <span class="result-value">{category.options[winnerIndex]}</span>
+              </div>
+            {/each}
+          </div>
+
+          <div class="fortune-text">
+            <p>{getResultText()}</p>
+          </div>
+
+          <button class="play-again-btn" onclick={playAgain}>
+            Play Again! 🔮
+          </button>
+        </div>
       {/if}
     </div>
 
@@ -705,6 +745,79 @@
   @keyframes pulse {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.05); }
+  }
+
+  .result-phase {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .result-title {
+    font-size: 2rem;
+    color: #c41e3a;
+    margin: 0;
+    text-align: center;
+  }
+
+  .result-categories {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .result-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 4px;
+  }
+
+  .result-label {
+    color: #666;
+    font-size: 0.9rem;
+  }
+
+  .result-value {
+    color: #2c5aa0;
+    font-size: 1.2rem;
+    font-weight: bold;
+  }
+
+  .fortune-text {
+    background: rgba(44, 90, 160, 0.1);
+    padding: 1rem;
+    border-radius: 8px;
+    border-left: 4px solid #2c5aa0;
+    margin: 0.5rem 0;
+  }
+
+  .fortune-text p {
+    margin: 0;
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: #333;
+  }
+
+  .play-again-btn {
+    font-family: 'Patrick Hand', cursive;
+    font-size: 1.3rem;
+    background: #9b59b6;
+    border: none;
+    color: white;
+    padding: 0.75rem 2rem;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .play-again-btn:hover {
+    background: #8e44ad;
+    transform: scale(1.05);
   }
 
   @media (max-width: 500px) {
