@@ -245,7 +245,9 @@
     }
   }
 
-  // Prevent touch events from triggering browser gestures
+  // Prevent touch events from triggering browser gestures on the game board only
+  let gameBoard: HTMLDivElement;
+
   function preventGesture(e: TouchEvent) {
     e.preventDefault();
   }
@@ -284,18 +286,18 @@
     window.addEventListener('keydown', handleKeydown);
     window.addEventListener('resize', calculateGrid);
 
-    // Prevent browser gestures on the game container with passive: false
-    if (gameContainer) {
-      gameContainer.addEventListener('touchstart', preventGesture, { passive: false });
-      gameContainer.addEventListener('touchmove', preventGesture, { passive: false });
+    // Prevent browser gestures on the game board only (not buttons)
+    if (gameBoard) {
+      gameBoard.addEventListener('touchstart', preventGesture, { passive: false });
+      gameBoard.addEventListener('touchmove', preventGesture, { passive: false });
     }
 
     return () => {
       window.removeEventListener('keydown', handleKeydown);
       window.removeEventListener('resize', calculateGrid);
-      if (gameContainer) {
-        gameContainer.removeEventListener('touchstart', preventGesture);
-        gameContainer.removeEventListener('touchmove', preventGesture);
+      if (gameBoard) {
+        gameBoard.removeEventListener('touchstart', preventGesture);
+        gameBoard.removeEventListener('touchmove', preventGesture);
       }
       clearTimeout(gameLoop);
     };
@@ -323,6 +325,7 @@
 
   <div
     class="game-board"
+    bind:this={gameBoard}
     style="width: {gridWidth * GRID_SIZE}px; height: {gridHeight * GRID_SIZE}px;"
   >
     <!-- Grid background -->
@@ -439,14 +442,14 @@
           ▼
         </button>
       </div>
-      {#if gameState === 'playing'}
-        <button
-          class="pause-btn"
-          onclick={() => { gameState = 'paused'; clearTimeout(gameLoop); }}
-        >
-          ⏸️
-        </button>
-      {/if}
+      <button
+        class="pause-btn"
+        class:hidden={gameState !== 'playing'}
+        onclick={() => { gameState = 'paused'; clearTimeout(gameLoop); }}
+        aria-label="Pause game"
+      >
+        ⏸️
+      </button>
     </div>
   {:else}
     <div class="controls-hint">
@@ -737,6 +740,11 @@
 
   .pause-btn:active {
     transform: scale(0.95);
+  }
+
+  .pause-btn.hidden {
+    visibility: hidden;
+    pointer-events: none;
   }
 
   /* Touch device adjustments */
