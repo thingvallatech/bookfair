@@ -150,8 +150,39 @@
     animateOpenClose(num, () => {
       phase = 'fortune';
       isAnimating = false;
-      playSound('ding', 0.5);
     });
+  }
+
+  let revealedFortune = $state<string | null>(null);
+
+  function revealFortune() {
+    if (!selectedTheme || selectedNumber === null) return;
+
+    // Fortune index is (selectedNumber - 1) since fortunes are 0-indexed
+    const fortuneIndex = selectedNumber - 1;
+    revealedFortune = selectedTheme.fortunes[fortuneIndex];
+    playSound('ding', 0.5);
+  }
+
+  function playAgain() {
+    phase = 'theme';
+    selectedTheme = null;
+    selectedColorIndex = null;
+    selectedNumber = null;
+    revealedFortune = null;
+    openState = 'closed';
+    animationCount = 0;
+    playSound('pop');
+  }
+
+  function changeTheme() {
+    phase = 'theme';
+    selectedColorIndex = null;
+    selectedNumber = null;
+    revealedFortune = null;
+    openState = 'closed';
+    animationCount = 0;
+    playSound('click');
   }
 
   // Game phases
@@ -211,6 +242,29 @@
             {num}
           </button>
         {/each}
+      </div>
+    {/if}
+
+    {#if phase === 'fortune' && selectedTheme}
+      <div class="fortune-reveal">
+        {#if revealedFortune}
+          <div class="fortune-card">
+            <p class="fortune-text">{revealedFortune}</p>
+          </div>
+          <div class="fortune-actions">
+            <button class="action-btn" onclick={playAgain}>
+              Play Again 🔮
+            </button>
+            <button class="action-btn secondary" onclick={changeTheme}>
+              Change Theme
+            </button>
+          </div>
+        {:else}
+          <p class="tap-prompt">Tap the catcher to reveal your fortune!</p>
+          <button class="reveal-btn" onclick={revealFortune}>
+            ✨ Reveal Fortune ✨
+          </button>
+        {/if}
       </div>
     {/if}
 
@@ -505,6 +559,99 @@
   .number-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  .fortune-reveal {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    width: 100%;
+    max-width: 300px;
+  }
+
+  .tap-prompt {
+    font-size: 1.2rem;
+    color: white;
+    text-align: center;
+    margin: 0;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  .reveal-btn {
+    font-family: 'Patrick Hand', cursive;
+    font-size: 1.3rem;
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .reveal-btn:hover {
+    transform: scale(1.05);
+  }
+
+  .fortune-card {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 2rem;
+    border-radius: 16px;
+    box-shadow: 4px 4px 16px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    animation: popIn 0.3s ease-out;
+  }
+
+  .fortune-text {
+    font-size: 1.5rem;
+    color: #333;
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  .fortune-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+  }
+
+  .action-btn {
+    font-family: 'Patrick Hand', cursive;
+    font-size: 1.2rem;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    background: #9b59b6;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .action-btn:hover {
+    transform: scale(1.02);
+    background: #8e44ad;
+  }
+
+  .action-btn.secondary {
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+  }
+
+  .action-btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  @keyframes popIn {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
   }
 
   :global(.cootie-beanie) {
