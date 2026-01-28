@@ -104,6 +104,79 @@
     playSound('whoosh', 0.3);
   }
 
+  // Spiral animation
+  let spiralProgress = $state(0);
+  let spiralLoops = $state(0);
+  let isDrawingSpiral = $state(false);
+
+  function drawSpiral() {
+    isDrawingSpiral = true;
+    spiralProgress = 0;
+    spiralLoops = 0;
+
+    // Random number of loops (3-10)
+    const targetLoops = Math.floor(Math.random() * 8) + 3;
+    magicNumber = targetLoops;
+
+    const duration = 2000; // 2 seconds
+    const startTime = Date.now();
+
+    function animate() {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      spiralProgress = progress;
+      spiralLoops = Math.floor(progress * targetLoops);
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        isDrawingSpiral = false;
+        playSound('ding', 0.5);
+        // Short delay then start elimination
+        setTimeout(() => {
+          phase = 'elimination';
+          startElimination();
+        }, 800);
+      }
+    }
+
+    playSound('draw', 0.3);
+    requestAnimationFrame(animate);
+  }
+
+  function generateSpiralPath(progress: number): string {
+    if (progress === 0) return '';
+
+    const centerX = 100;
+    const centerY = 100;
+    const maxRadius = 80;
+    const totalRotations = magicNumber || 5;
+    const points: string[] = [];
+
+    const steps = Math.floor(progress * totalRotations * 50);
+
+    for (let i = 0; i <= steps; i++) {
+      const angle = (i / 50) * Math.PI * 2;
+      const radius = (i / (totalRotations * 50)) * maxRadius;
+      const x = centerX + Math.cos(angle) * radius;
+      const y = centerY + Math.sin(angle) * radius;
+
+      if (i === 0) {
+        points.push(`M ${x} ${y}`);
+      } else {
+        points.push(`L ${x} ${y}`);
+      }
+    }
+
+    return points.join(' ');
+  }
+
+  function startElimination() {
+    // Will be implemented in next task
+    console.log('Starting elimination with magic number:', magicNumber);
+  }
+
   // Game phases
   type Phase = 'setup' | 'spiral' | 'elimination' | 'result';
   let phase = $state<Phase>('setup');
@@ -172,7 +245,35 @@
           </button>
         </div>
       {:else if phase === 'spiral'}
-        <p>Spiral phase coming soon...</p>
+        <div class="spiral-phase">
+          <p class="instruction">Drawing your spiral...</p>
+
+          <div class="spiral-container">
+            <svg viewBox="0 0 200 200" class="spiral-svg">
+              <path
+                d={generateSpiralPath(spiralProgress)}
+                fill="none"
+                stroke="#2c5aa0"
+                stroke-width="3"
+                stroke-linecap="round"
+              />
+            </svg>
+          </div>
+
+          <p class="loop-count">
+            {#if isDrawingSpiral}
+              Loops: {spiralLoops}
+            {:else}
+              Your number is: <strong>{magicNumber}</strong>
+            {/if}
+          </p>
+
+          {#if !isDrawingSpiral && spiralProgress === 0}
+            <button class="draw-btn" onclick={drawSpiral}>
+              Tap to Draw!
+            </button>
+          {/if}
+        </div>
       {:else if phase === 'elimination'}
         <p>Elimination phase coming soon...</p>
       {:else if phase === 'result'}
@@ -360,6 +461,67 @@
   .start-btn:hover {
     background: #1e4080;
     transform: scale(1.05);
+  }
+
+  .spiral-phase {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 0;
+  }
+
+  .instruction {
+    font-size: 1.3rem;
+    color: #2c5aa0;
+    margin: 0;
+  }
+
+  .spiral-container {
+    width: 180px;
+    height: 180px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 8px;
+    padding: 10px;
+  }
+
+  .spiral-svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .loop-count {
+    font-size: 1.5rem;
+    color: #333;
+    margin: 0;
+  }
+
+  .loop-count strong {
+    color: #c41e3a;
+    font-size: 2rem;
+  }
+
+  .draw-btn {
+    font-family: 'Patrick Hand', cursive;
+    font-size: 1.5rem;
+    background: #4a9c5d;
+    border: none;
+    color: white;
+    padding: 0.75rem 2rem;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  .draw-btn:hover {
+    background: #3a8c4d;
+    transform: scale(1.05);
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
   }
 
   @media (max-width: 500px) {
