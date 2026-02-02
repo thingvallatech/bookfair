@@ -618,6 +618,7 @@
   ];
 
   function handleDesktopContextMenu(e: MouseEvent) {
+    if (pokedoomFocused) { e.preventDefault(); return; }
     // Only open if clicking on the desktop area itself, not on icons/windows/taskbar
     const target = e.target as HTMLElement;
     if (target.closest('.desktop-icon') || target.closest('.xp-window') || target.closest('.taskbar') || target.closest('.context-menu')) {
@@ -666,6 +667,7 @@
 
   let windows = $state<XPWindow[]>([]);
   let nextZ = $state(10);
+  let pokedoomFocused = $state(false);
   let dragState = $state<{
     id: string;
     offsetX: number;
@@ -701,7 +703,10 @@
 
   function closeWindow(id: string) {
     const win = windows.find(w => w.id === id);
-    if (win) win.visible = false;
+    if (win) {
+      win.visible = false;
+      if (win.content === 'pokedoom') pokedoomFocused = false;
+    }
     playSound('click');
   }
 
@@ -709,6 +714,14 @@
     const win = windows.find(w => w.id === id);
     if (win) {
       win.zIndex = nextZ++;
+    }
+    // Track PokeDOOM focus — suppress BadOS overlays when game is active
+    pokedoomFocused = win?.content === 'pokedoom';
+    if (pokedoomFocused) {
+      startMenuOpen = false;
+      submenuChain = [];
+      contextMenuOpen = false;
+      volumeOpen = false;
     }
     // Jealous windows: all other visible windows sulk
     for (const w of windows) {
@@ -794,6 +807,7 @@
   }
 
   function handleStartClick() {
+    if (pokedoomFocused) return;
     toggleStartMenu();
   }
 
@@ -906,7 +920,7 @@
     {#each windows.filter(w => w.visible) as win (win.id)}
       <div
         class="xp-window"
-        style="left: {win.x}px; top: {win.y}px; width: {win.id === 'notepad' ? `calc(${win.width}px + ${notepadTitleStretch * 100}px)` : `${win.width}px`}; height: {win.height}px; z-index: {win.zIndex}; transform: {getSulkTransform(win)}"
+        style="left: {win.x}px; top: {win.y}px; width: {win.id === 'notepad' ? `calc(${win.width}px + ${notepadTitleStretch * 100}px)` : `${win.width}px`}; height: {win.height}px; z-index: {win.content === 'pokedoom' && pokedoomFocused ? 1000 : win.zIndex}; transform: {getSulkTransform(win)}"
         onmousedown={() => bringToFront(win.id)}
         onmouseenter={win.content === 'progress' ? () => { isWatchingProgress = true; } : undefined}
         onmouseleave={win.content === 'progress' ? () => { isWatchingProgress = false; } : undefined}
@@ -1202,7 +1216,7 @@
   {/if}
 
   <!-- Taskbar -->
-  <div class="taskbar">
+  <div class="taskbar" style:display={pokedoomFocused ? 'none' : ''}>
     <button class="start-button" onclick={handleStartClick}>
       <span class="start-logo">&#8862;</span>
       <span class="start-text">start</span>

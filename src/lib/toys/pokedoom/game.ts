@@ -383,14 +383,14 @@ export class Game {
 
 		// Strafe
 		if (keys.has('a')) {
-			const newX = player.pos.x - player.dir.y * MOVE_SPEED;
-			const newY = player.pos.y + player.dir.x * MOVE_SPEED;
+			const newX = player.pos.x + player.dir.y * MOVE_SPEED;
+			const newY = player.pos.y - player.dir.x * MOVE_SPEED;
 			if (!this.isWall(newX, player.pos.y)) player.pos.x = newX;
 			if (!this.isWall(player.pos.x, newY)) player.pos.y = newY;
 		}
 		if (keys.has('d')) {
-			const newX = player.pos.x + player.dir.y * MOVE_SPEED;
-			const newY = player.pos.y - player.dir.x * MOVE_SPEED;
+			const newX = player.pos.x - player.dir.y * MOVE_SPEED;
+			const newY = player.pos.y + player.dir.x * MOVE_SPEED;
 			if (!this.isWall(newX, player.pos.y)) player.pos.x = newX;
 			if (!this.isWall(player.pos.x, newY)) player.pos.y = newY;
 		}
