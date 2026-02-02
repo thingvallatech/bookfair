@@ -30,6 +30,13 @@
 
     // Initialize the beanie hunt for this session
     initializeHunt();
+
+    // Register service worker for PWA (production only)
+    if ('serviceWorker' in navigator && location.hostname !== 'localhost') {
+      navigator.serviceWorker.register('/service-worker.js').catch(() => {
+        // Service worker registration failed - not critical, app still works
+      });
+    }
   });
 </script>
 

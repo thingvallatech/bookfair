@@ -3,6 +3,7 @@
   import CloseButton from '$lib/components/CloseButton.svelte';
   import HidingBeanie from '$lib/components/HidingBeanie.svelte';
   import { playSound } from '$lib/stores/audio';
+  import { haptic } from '$lib/stores/haptics';
   import { registerSpots, getBeaniesForArea, type HidingSpot } from '$lib/stores/beanieHunt';
   import type { Beanie } from '$lib/stores/beanies';
 
@@ -137,6 +138,7 @@
     if (newHead.x === apple.x && newHead.y === apple.y) {
       score += 10;
       playSound('coin', 0.5);
+      haptic('tap');
       spawnApple();
 
       // Speed up
@@ -153,6 +155,7 @@
     gameState = 'gameover';
     clearTimeout(gameLoop);
     playSound('death', 0.5);
+    haptic('error');
 
     if (score > highScore) {
       highScore = score;

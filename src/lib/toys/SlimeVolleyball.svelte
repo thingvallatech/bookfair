@@ -4,6 +4,7 @@
   import HidingBeanie from '$lib/components/HidingBeanie.svelte';
   import TouchHint from '$lib/components/TouchHint.svelte';
   import { playSound } from '$lib/stores/audio';
+  import { haptic } from '$lib/stores/haptics';
   import { registerSpots, getBeaniesForArea, type HidingSpot } from '$lib/stores/beanieHunt';
   import type { Beanie } from '$lib/stores/beanies';
 
@@ -119,10 +120,12 @@
       playerScore++;
       pointMessage = 'You scored!';
       playSound('coin', 0.5);
+      haptic('tap');
     } else {
       aiScore++;
       pointMessage = 'AI scored!';
       playSound('hit', 0.5);
+      haptic('tap');
     }
 
     if (playerScore >= WINNING_SCORE) {

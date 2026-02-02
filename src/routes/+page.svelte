@@ -6,7 +6,9 @@
   import ToyLoader from '$lib/components/ToyLoader.svelte';
   import HidingBeanie from '$lib/components/HidingBeanie.svelte';
   import CRTBoot from '$lib/components/CRTBoot.svelte';
+  import Onboarding from '$lib/components/Onboarding.svelte';
   import { playSound } from '$lib/stores/audio';
+  import { haptic } from '$lib/stores/haptics';
   import { initializeHunt, registerSpots, getBeaniesForArea, getDiscoveryStats, type HidingSpot } from '$lib/stores/beanieHunt';
   import type { Beanie } from '$lib/stores/beanies';
   import BeanieGallery from '$lib/components/BeanieGallery.svelte';
@@ -37,9 +39,14 @@
   import AskJeeves from '$lib/toys/AskJeeves.svelte';
   import CarmenSandiego from '$lib/toys/CarmenSandiego.svelte';
   import Encarta from '$lib/toys/Encarta.svelte';
+  import KonamiCode from '$lib/components/KonamiCode.svelte';
 
   // CRT boot animation overlay
   let showCRTBoot = $state(true);
+
+  // Onboarding overlay (first-visit only, shown after CRT boot)
+  let showOnboarding = $state(false);
+  let needsOnboarding = $state(false);
 
   // Which object is currently "open" (fullscreen experience)
   let activeObject = $state<string | null>(null);
@@ -107,6 +114,7 @@
 
   function openObject(id: string) {
     playSound('click');
+    haptic('tap');
     isLoading = true;
     loadingToy = heavyToys[id] || null;
 
@@ -145,6 +153,7 @@
   function nextPage() {
     if (currentPage < totalPages - 1) {
       playSound('whoosh', 0.2);
+      haptic('heavy');
       currentPage++;
       focusedIndex = 0;
     }
@@ -153,6 +162,7 @@
   function prevPage() {
     if (currentPage > 0) {
       playSound('whoosh', 0.2);
+      haptic('heavy');
       currentPage--;
       focusedIndex = 0;
     }
@@ -264,6 +274,11 @@
     const beanies = getBeaniesForArea('shelf');
     shelfBeanie = beanies.get('behind-wood') || null;
     discoveryStats = getDiscoveryStats();
+
+    // Check if first visit (no onboarding flag set)
+    if (browser && !localStorage.getItem('bookfair_onboarded')) {
+      needsOnboarding = true;
+    }
 
     // Check for hash on load
     if (browser && window.location.hash) {
@@ -542,12 +557,20 @@
   </button>
 {/if}
 
+{#if !activeObject}
+  <KonamiCode />
+{/if}
+
 {#if showGallery}
   <BeanieGallery onClose={() => { showGallery = false; discoveryStats = getDiscoveryStats(); }} />
 {/if}
 
 {#if showCRTBoot}
-  <CRTBoot onComplete={() => { showCRTBoot = false; }} />
+  <CRTBoot onComplete={() => { showCRTBoot = false; if (needsOnboarding) showOnboarding = true; }} />
+{/if}
+
+{#if showOnboarding}
+  <Onboarding onComplete={() => { showOnboarding = false; }} />
 {/if}
 
 <style>

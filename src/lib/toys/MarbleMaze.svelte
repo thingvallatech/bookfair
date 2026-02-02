@@ -3,6 +3,7 @@
   import CloseButton from '$lib/components/CloseButton.svelte';
   import HidingBeanie from '$lib/components/HidingBeanie.svelte';
   import { playSound } from '$lib/stores/audio';
+  import { haptic } from '$lib/stores/haptics';
   import { registerSpots, getBeaniesForArea, type HidingSpot } from '$lib/stores/beanieHunt';
   import type { Beanie } from '$lib/stores/beanies';
 
@@ -455,10 +456,12 @@
     if (collision.hitX) {
       ballVX *= -bounceDamping;
       playSound('pop', 0.15);
+      haptic('tap');
     }
     if (collision.hitY) {
       ballVY *= -bounceDamping;
       playSound('pop', 0.15);
+      haptic('tap');
     }
     ballX = collision.x;
     ballY = collision.y;
@@ -471,6 +474,7 @@
       fallingHoleY = hole.y * scale;
       fallingProgress = 0;
       playSound('error', 0.3);
+      haptic('error');
     }
 
     // Goal check
@@ -479,6 +483,7 @@
       clearInterval(timerInterval);
       saveBestTime(level, timer);
       playSound('success', 0.4);
+      haptic('success');
     }
   }
 

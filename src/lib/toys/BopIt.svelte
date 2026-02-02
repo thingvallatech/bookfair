@@ -3,6 +3,7 @@
   import CloseButton from '$lib/components/CloseButton.svelte';
   import HidingBeanie from '$lib/components/HidingBeanie.svelte';
   import { playSound } from '$lib/stores/audio';
+  import { haptic } from '$lib/stores/haptics';
   import { registerSpots, getBeaniesForArea, type HidingSpot } from '$lib/stores/beanieHunt';
   import type { Beanie } from '$lib/stores/beanies';
 
@@ -153,6 +154,7 @@
       clearTimers();
       const actionDef = ACTIONS[action];
       playSound(actionDef.sound as any, actionDef.volume);
+      haptic('tap');
       lastCorrectAction = action;
       score++;
 
@@ -191,6 +193,7 @@
 
   function gameOver() {
     playSound('error', 0.4);
+    haptic('error');
     gameState = 'gameover';
     currentAction = null;
     commandPulse = false;

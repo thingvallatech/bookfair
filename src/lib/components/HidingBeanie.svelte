@@ -2,6 +2,7 @@
   import type { Beanie } from '$lib/stores/beanies';
   import { showTag, isDiscoveredThisSession } from '$lib/stores/beanieHunt';
   import { playSound } from '$lib/stores/audio';
+  import { haptic } from '$lib/stores/haptics';
 
   interface Props {
     beanie: Beanie;
@@ -24,6 +25,7 @@
       wiggling = true;
       discovered = true;
       playSound('pop');
+      haptic('discovery');
 
       setTimeout(() => {
         wiggling = false;
