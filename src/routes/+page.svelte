@@ -24,6 +24,7 @@
   import SlimeVolleyball from '$lib/toys/SlimeVolleyball.svelte';
   import MASH from '$lib/toys/MASH.svelte';
   import CootieCatcher from '$lib/toys/CootieCatcher.svelte';
+  import BadOS from '$lib/toys/BadOS.svelte';
 
   // Which object is currently "open" (fullscreen experience)
   let activeObject = $state<string | null>(null);
@@ -49,6 +50,7 @@
     { id: 'slimevolleyball', name: 'Slime Volleyball', icon: '🏐', desc: 'Beat the AI' },
     { id: 'mash', name: 'MASH', icon: '📝', desc: 'Predict your future' },
     { id: 'cootiecatcher', name: 'Cootie Catcher', icon: '🔮', desc: 'Pick your fortune' },
+    { id: 'bados', name: 'BadOS XP', icon: '🖥️', desc: 'Worst desktop ever' },
   ];
 
   // Single hiding spot behind the wood shelf
@@ -370,6 +372,10 @@
 {:else if activeObject === 'cootiecatcher'}
   <div class="object-view" role="dialog" aria-label="Cootie Catcher">
     <CootieCatcher onClose={closeObject} />
+  </div>
+{:else if activeObject === 'bados'}
+  <div class="object-view" role="dialog" aria-label="BadOS XP">
+    <BadOS onClose={closeObject} />
   </div>
 {/if}
 
