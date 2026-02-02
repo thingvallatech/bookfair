@@ -83,7 +83,9 @@
           openWindow('recycle', 'Recycle Bin', 'recycle');
           break;
         case 'login':
-          openWindow('login', 'Login', 'empty');
+          loginPassword = '';
+          loginFailed = false;
+          openWindow('login', 'Log In to BadOS', 'login', 360, 340);
           break;
       }
     }, 500);
@@ -212,6 +214,183 @@
 
   function handleNotepadTitlebarLeave() {
     notepadTitleStretch = 0;
+  }
+
+  // ========================
+  // PASSWORD ROAST (Gag 10)
+  // ========================
+  const ROASTS: [number, string, string][] = [
+    [0, 'Type something, coward.', '#888'],
+    [1, 'Pathetic.', '#ff0000'],
+    [3, 'My grandma could guess this.', '#ff3300'],
+    [5, 'Is this a password or a cry for help?', '#ff6600'],
+    [8, 'Getting warmer... still terrible.', '#ff9900'],
+    [10, 'Your cat walked on the keyboard and did better.', '#cc9900'],
+    [12, "Fine. It's acceptable. Barely.", '#99cc00'],
+    [15, 'Wait... this is actually good. Are you a hacker?', '#33cc00'],
+    [20, 'FBI OPEN UP', '#0066ff'],
+  ];
+
+  let loginPassword = $state('');
+  let loginFailed = $state(false);
+
+  function getCurrentRoast(): { text: string; color: string; width: number } {
+    const len = loginPassword.length;
+    let current = ROASTS[0];
+    for (const r of ROASTS) {
+      if (len >= r[0]) current = r;
+    }
+    return {
+      text: current[1],
+      color: current[2],
+      width: Math.min(100, (len / 20) * 100)
+    };
+  }
+
+  // ========================
+  // START MENU ROULETTE (Gag 11) + INFINITE SUBMENUS (Gag 4)
+  // ========================
+  type MenuEdge = 'bottom-left' | 'top-left' | 'top-right' | 'bottom-right';
+  let startMenuOpen = $state(false);
+  let startMenuEdge = $state<MenuEdge>('bottom-left');
+  const MENU_EDGES: MenuEdge[] = ['bottom-left', 'top-left', 'top-right', 'bottom-right'];
+
+  interface MenuItem {
+    icon: string;
+    label: string;
+    hasSubmenu?: boolean;
+    isSeparator?: boolean;
+    isShutdown?: boolean;
+    submenuId?: string;
+  }
+
+  const START_MENU_ITEMS: MenuItem[] = [
+    { icon: '📁', label: 'My Documents' },
+    { icon: '🖥️', label: 'My Computer' },
+    { icon: '🎮', label: 'Games', hasSubmenu: true, submenuId: 'games' },
+    { icon: '⚙️', label: 'Control Panel', hasSubmenu: true, submenuId: 'control' },
+    { icon: '📂', label: 'All Programs', hasSubmenu: true, submenuId: 'programs' },
+    { icon: '', label: '', isSeparator: true },
+    { icon: '🔌', label: 'Shut Down', isShutdown: true },
+  ];
+
+  interface SubmenuDef {
+    items: { label: string; nextSubmenu?: string }[];
+  }
+
+  const SUBMENUS: Record<string, SubmenuDef> = {
+    games: {
+      items: [
+        { label: 'Solitaire' },
+        { label: 'Minesweeper' },
+        { label: 'Pinball' },
+        { label: 'More Games', nextSubmenu: 'games2' },
+      ],
+    },
+    games2: {
+      items: [
+        { label: 'Even More Games', nextSubmenu: 'games3' },
+      ],
+    },
+    games3: {
+      items: [
+        { label: 'So Many Games', nextSubmenu: 'games4' },
+      ],
+    },
+    games4: {
+      items: [
+        { label: 'All Games', nextSubmenu: 'games' },
+      ],
+    },
+    control: {
+      items: [
+        { label: 'Display' },
+        { label: 'Sound' },
+        { label: 'Advanced', nextSubmenu: 'control2' },
+      ],
+    },
+    control2: {
+      items: [
+        { label: 'Even More Advanced', nextSubmenu: 'control3' },
+      ],
+    },
+    control3: {
+      items: [
+        { label: 'Way Too Advanced', nextSubmenu: 'control' },
+      ],
+    },
+    programs: {
+      items: [
+        { label: 'Calculator' },
+        { label: 'Paint' },
+        { label: 'More Programs', nextSubmenu: 'programs2' },
+      ],
+    },
+    programs2: {
+      items: [
+        { label: 'Even More Programs', nextSubmenu: 'programs3' },
+      ],
+    },
+    programs3: {
+      items: [
+        { label: 'So Many Programs', nextSubmenu: 'programs4' },
+      ],
+    },
+    programs4: {
+      items: [
+        { label: 'All Programs', nextSubmenu: 'programs' },
+      ],
+    },
+  };
+
+  // Track submenu chain: each entry is a submenuId at that depth
+  let submenuChain = $state<string[]>([]);
+
+  function toggleStartMenu() {
+    if (startMenuOpen) {
+      startMenuOpen = false;
+      submenuChain = [];
+    } else {
+      startMenuEdge = MENU_EDGES[Math.floor(Math.random() * MENU_EDGES.length)];
+      startMenuOpen = true;
+      submenuChain = [];
+    }
+    playSound('click');
+  }
+
+  function closeStartMenu() {
+    startMenuOpen = false;
+    submenuChain = [];
+  }
+
+  function handleStartMenuItemClick(item: MenuItem) {
+    if (item.isShutdown) {
+      closeStartMenu();
+      onClose();
+      return;
+    }
+    if (!item.hasSubmenu && !item.isSeparator) {
+      playSound('error');
+      closeStartMenu();
+    }
+  }
+
+  function handleSubmenuItemClick(subItem: { label: string; nextSubmenu?: string }) {
+    if (!subItem.nextSubmenu) {
+      playSound('error');
+      closeStartMenu();
+    }
+  }
+
+  function openSubmenuAtDepth(depth: number, submenuId: string) {
+    // Truncate chain to depth, then add
+    submenuChain = [...submenuChain.slice(0, depth), submenuId];
+  }
+
+  function closeSubmenusFromDepth(depth: number) {
+    if (submenuChain.length > depth) {
+      submenuChain = submenuChain.slice(0, depth);
+    }
   }
 
   // Clock state
@@ -345,6 +524,11 @@
     if (!target.closest('.volume-popup') && !target.closest('.volume-btn')) {
       volumeOpen = false;
     }
+    if (!target.closest('.start-menu') && !target.closest('.start-button')) {
+      if (startMenuOpen) {
+        closeStartMenu();
+      }
+    }
   }
 
   // ========================
@@ -473,7 +657,7 @@
   }
 
   function handleStartClick() {
-    playSound('click');
+    toggleStartMenu();
   }
 
   onMount(() => {
@@ -605,6 +789,35 @@
                 spellcheck="false"
               ></textarea>
             </div>
+          {:else if win.content === 'login'}
+            {@const roast = getCurrentRoast()}
+            <div class="login-container">
+              <div class="login-form">
+                <label class="login-label">
+                  Username:
+                  <input type="text" class="login-input" placeholder="Admin" />
+                </label>
+                <label class="login-label">
+                  Password:
+                  <input type="password" class="login-input" bind:value={loginPassword} placeholder="" />
+                </label>
+                <div class="strength-meter">
+                  <div class="strength-bar-track">
+                    <div
+                      class="strength-bar-fill"
+                      style="width: {roast.width}%; background-color: {roast.color}"
+                    ></div>
+                  </div>
+                  <div class="strength-text" style="color: {roast.color}">{roast.text}</div>
+                </div>
+                <button class="login-btn" onclick={() => { loginFailed = true; playSound('error'); }}>
+                  Log In
+                </button>
+                {#if loginFailed}
+                  <div class="login-error">Incorrect password. (We didn't even check.)</div>
+                {/if}
+              </div>
+            </div>
           {:else if win.content === 'progress'}
             <div class="progress-container">
               <div class="progress-track">
@@ -693,6 +906,80 @@
         <p>IRQL_NOT_LESS_OR_EQUAL</p>
         <p>*** STOP: 0x0000000A (0x00000000, 0x00000002, 0x00000000, 0x804E3B2C)</p>
       </div>
+    </div>
+  {/if}
+
+  <!-- Start Menu -->
+  {#if startMenuOpen}
+    <div class="start-menu start-menu-{startMenuEdge}" role="menu">
+      <div class="start-menu-sidebar">
+        <span class="start-menu-sidebar-text">BadOS XP</span>
+      </div>
+      <div class="start-menu-content">
+        {#each START_MENU_ITEMS as item, i}
+          {#if item.isSeparator}
+            <div class="start-menu-separator"></div>
+          {:else}
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              class="start-menu-item"
+              class:start-menu-item-shutdown={item.isShutdown}
+              onclick={() => handleStartMenuItemClick(item)}
+              onmouseenter={() => {
+                if (item.hasSubmenu && item.submenuId) {
+                  openSubmenuAtDepth(0, item.submenuId);
+                } else {
+                  closeSubmenusFromDepth(0);
+                }
+              }}
+              role="menuitem"
+              tabindex="-1"
+            >
+              <span class="start-menu-item-icon">{item.icon}</span>
+              <span class="start-menu-item-label">{item.label}</span>
+              {#if item.hasSubmenu}
+                <span class="start-menu-item-arrow">&#9656;</span>
+              {/if}
+            </div>
+          {/if}
+        {/each}
+      </div>
+
+      <!-- Submenu cascade -->
+      {#each submenuChain as submenuId, depth}
+        {@const submenu = SUBMENUS[submenuId]}
+        {#if submenu}
+          <!-- svelte-ignore a11y_no_static_element_interactions a11y_interactive_supports_focus -->
+          <div
+            class="start-submenu"
+            style="--depth: {depth + 1}; --offset: {(depth + 1) * 200}px"
+            onmouseleave={() => closeSubmenusFromDepth(depth + 1)}
+            role="menu"
+          >
+            {#each submenu.items as subItem}
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div
+                class="start-menu-item"
+                onclick={() => handleSubmenuItemClick(subItem)}
+                onmouseenter={() => {
+                  if (subItem.nextSubmenu) {
+                    openSubmenuAtDepth(depth + 1, subItem.nextSubmenu);
+                  } else {
+                    closeSubmenusFromDepth(depth + 1);
+                  }
+                }}
+                role="menuitem"
+                tabindex="-1"
+              >
+                <span class="start-menu-item-label">{subItem.label}</span>
+                {#if subItem.nextSubmenu}
+                  <span class="start-menu-item-arrow">&#9656;</span>
+                {/if}
+              </div>
+            {/each}
+          </div>
+        {/if}
+      {/each}
     </div>
   {/if}
 
@@ -1923,5 +2210,298 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.8),
       0 1px 2px rgba(0, 0, 0, 0.15);
     cursor: pointer;
+  }
+
+  /* ========================
+     LOGIN FORM (Gag 10)
+     ======================== */
+  .login-container {
+    padding: 20px;
+    background: #ece9d8;
+    height: 100%;
+    box-sizing: border-box;
+  }
+
+  .login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .login-label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    color: #000;
+    font-family: 'Tahoma', 'Segoe UI', sans-serif;
+  }
+
+  .login-input {
+    height: 24px;
+    padding: 2px 6px;
+    border: 1px solid #7f9db9;
+    font-size: 12px;
+    font-family: 'Tahoma', 'Segoe UI', sans-serif;
+    background: #fff;
+    color: #000;
+    box-shadow:
+      inset 1px 1px 2px rgba(0, 0, 0, 0.2),
+      inset -1px -1px 0 rgba(255, 255, 255, 0.5);
+    outline: none;
+  }
+
+  .login-input:focus {
+    border-color: #3169c6;
+    box-shadow:
+      inset 1px 1px 2px rgba(0, 0, 0, 0.2),
+      0 0 2px rgba(49, 105, 198, 0.4);
+  }
+
+  .strength-meter {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .strength-bar-track {
+    width: 100%;
+    height: 8px;
+    background: #ddd;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid #bbb;
+  }
+
+  .strength-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease, background-color 0.3s ease;
+  }
+
+  .strength-text {
+    font-size: 11px;
+    font-family: 'Tahoma', 'Segoe UI', sans-serif;
+    font-style: italic;
+    min-height: 16px;
+    transition: color 0.3s ease;
+  }
+
+  .login-btn {
+    align-self: center;
+    min-width: 90px;
+    height: 26px;
+    padding: 0 20px;
+    border: 1px solid #003c74;
+    border-radius: 3px;
+    font-size: 12px;
+    font-family: 'Tahoma', 'Segoe UI', sans-serif;
+    cursor: pointer;
+    background: linear-gradient(
+      180deg,
+      #fff 0%,
+      #f0f0ea 40%,
+      #e4e0d8 70%,
+      #d6d2c6 100%
+    );
+    color: #000;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.8),
+      0 1px 2px rgba(0, 0, 0, 0.15);
+    margin-top: 4px;
+  }
+
+  .login-btn:hover {
+    background: linear-gradient(
+      180deg,
+      #fff 0%,
+      #f5f5f0 40%,
+      #ebe8e0 70%,
+      #e0dcd4 100%
+    );
+    border-color: #0055cc;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.8),
+      0 0 3px rgba(0, 85, 204, 0.4);
+  }
+
+  .login-btn:active {
+    background: linear-gradient(
+      180deg,
+      #d6d2c6 0%,
+      #e0dcd4 50%,
+      #d6d2c6 100%
+    );
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+  }
+
+  .login-error {
+    color: #cc0000;
+    font-size: 11px;
+    font-family: 'Tahoma', 'Segoe UI', sans-serif;
+    text-align: center;
+    font-weight: bold;
+  }
+
+  /* ========================
+     START MENU (Gag 11)
+     ======================== */
+  .start-menu {
+    position: fixed;
+    width: 240px;
+    z-index: 600;
+    background: #fff;
+    border: 2px solid #1f3f8e;
+    box-shadow: 3px 3px 12px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: row;
+    font-family: 'Tahoma', 'Segoe UI', sans-serif;
+    overflow: visible;
+  }
+
+  /* Edge positioning */
+  .start-menu-bottom-left {
+    bottom: 36px;
+    left: 0;
+    animation: start-slide-up 0.2s ease-out;
+  }
+
+  .start-menu-top-left {
+    top: 0;
+    left: 0;
+    animation: start-slide-down 0.2s ease-out;
+  }
+
+  .start-menu-top-right {
+    top: 0;
+    right: 0;
+    animation: start-slide-down 0.2s ease-out;
+  }
+
+  .start-menu-bottom-right {
+    bottom: 36px;
+    right: 0;
+    animation: start-slide-up 0.2s ease-out;
+  }
+
+  @keyframes start-slide-up {
+    0% { transform: translateY(20px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+
+  @keyframes start-slide-down {
+    0% { transform: translateY(-20px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+
+  .start-menu-sidebar {
+    width: 28px;
+    min-width: 28px;
+    background: linear-gradient(180deg, #1f3f8e 0%, #2b5fc4 100%);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 8px 0;
+    position: relative;
+  }
+
+  .start-menu-sidebar-text {
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    white-space: nowrap;
+  }
+
+  .start-menu-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 4px 0;
+  }
+
+  .start-menu-item {
+    display: flex;
+    align-items: center;
+    height: 28px;
+    padding: 0 12px 0 8px;
+    cursor: pointer;
+    gap: 8px;
+    font-size: 12px;
+    color: #000;
+    position: relative;
+  }
+
+  .start-menu-item:hover {
+    background: #316ac5;
+    color: white;
+  }
+
+  .start-menu-item-shutdown {
+    font-weight: bold;
+  }
+
+  .start-menu-item-icon {
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .start-menu-item-label {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .start-menu-item-arrow {
+    font-size: 10px;
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+
+  .start-menu-separator {
+    height: 1px;
+    background: #c0c0c0;
+    margin: 3px 8px;
+  }
+
+  /* Submenus */
+  .start-submenu {
+    position: absolute;
+    top: 0;
+    left: calc(100% + var(--offset, 0px) - 200px);
+    width: 200px;
+    background: #fff;
+    border: 2px solid #1f3f8e;
+    box-shadow: 3px 3px 12px rgba(0, 0, 0, 0.4);
+    padding: 4px 0;
+    z-index: 650;
+    animation: submenu-slide-in 0.15s ease-out;
+    font-family: 'Tahoma', 'Segoe UI', sans-serif;
+  }
+
+  /* For right-side menus, submenus go left */
+  .start-menu-top-right .start-submenu,
+  .start-menu-bottom-right .start-submenu {
+    left: auto;
+    right: calc(100% + var(--offset, 0px) - 200px);
+    animation: submenu-slide-in-left 0.15s ease-out;
+  }
+
+  @keyframes submenu-slide-in {
+    0% { transform: translateX(-8px); opacity: 0; }
+    100% { transform: translateX(0); opacity: 1; }
+  }
+
+  @keyframes submenu-slide-in-left {
+    0% { transform: translateX(8px); opacity: 0; }
+    100% { transform: translateX(0); opacity: 1; }
   }
 </style>
