@@ -13,6 +13,133 @@
   let mx = $state(0.5);
   let my = $state(0.5);
 
+  // ========================
+  // DESKTOP ICONS
+  // ========================
+  interface DesktopIcon {
+    id: string;
+    label: string;
+    icon: string;
+    x: number;
+    y: number;
+  }
+
+  const ICON_DEFS = [
+    { id: 'computer', label: 'My Computer', icon: '🖥️' },
+    { id: 'ie', label: 'Internet\nExplorer', icon: '🌐' },
+    { id: 'virus', label: 'Definitely Not\nA Virus.exe', icon: '💀' },
+    { id: 'homework', label: 'homework\n(real).pdf', icon: '📄' },
+    { id: 'folder', label: 'New Folder (37)', icon: '📁' },
+    { id: 'notepad', label: 'Notepad', icon: '📝' },
+    { id: 'recycle', label: 'Recycle Bin', icon: '🗑️' },
+    { id: 'login', label: 'Login', icon: '🔐' },
+  ];
+
+  let icons = $state<DesktopIcon[]>(
+    ICON_DEFS.map((def, i) => ({
+      ...def,
+      x: 20,
+      y: 20 + i * 80,
+    }))
+  );
+
+  let recycleAttempts = $state(0);
+  let recycleGaveUp = $state(false);
+
+  function shuffleIcons() {
+    const maxX = Math.max(100, (typeof window !== 'undefined' ? window.innerWidth : 1024) - 80);
+    const maxY = Math.max(100, (typeof window !== 'undefined' ? window.innerHeight : 768) - 120);
+    for (const icon of icons) {
+      icon.x = 10 + Math.random() * (maxX - 10);
+      icon.y = 10 + Math.random() * (maxY - 10);
+    }
+  }
+
+  function handleIconClick(id: string) {
+    playSound('scatter');
+    shuffleIcons();
+
+    setTimeout(() => {
+      switch (id) {
+        case 'computer':
+          openWindow('computer', 'My Computer', 'empty');
+          break;
+        case 'ie':
+          openWindow('ie', 'Internet Explorer', 'ie');
+          break;
+        case 'virus':
+          openWindow('virus', 'Error', 'empty');
+          break;
+        case 'homework':
+          openWindow('homework', 'homework (real).pdf', 'homework');
+          break;
+        case 'folder':
+          openWindow('folder', 'New Folder (37)', 'empty');
+          break;
+        case 'notepad':
+          openWindow('notepad', 'Notepad', 'empty');
+          break;
+        case 'recycle':
+          openWindow('recycle', 'Recycle Bin', 'recycle');
+          break;
+        case 'login':
+          openWindow('login', 'Login', 'empty');
+          break;
+      }
+    }, 500);
+  }
+
+  function getIconShadow(icon: DesktopIcon): string {
+    const iconCenterX = icon.x + 36;
+    const iconCenterY = icon.y + 32;
+    const cursorX = mx * (typeof window !== 'undefined' ? window.innerWidth : 1024);
+    const cursorY = my * (typeof window !== 'undefined' ? window.innerHeight : 768);
+    const dx = iconCenterX - cursorX;
+    const dy = iconCenterY - cursorY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < 1) return 'drop-shadow(0px 0px 2px rgba(0,0,0,0.3))';
+    const normDx = dx / dist;
+    const normDy = dy / dist;
+    const shadowLen = Math.min(dist * 0.04, 12);
+    return `drop-shadow(${normDx * shadowLen}px ${normDy * shadowLen}px ${2 + shadowLen * 0.3}px rgba(0,0,0,0.35))`;
+  }
+
+  function checkRecycleFlee(cursorX: number, cursorY: number) {
+    if (recycleGaveUp) return;
+    const recycleIcon = icons.find(i => i.id === 'recycle');
+    if (!recycleIcon) return;
+
+    const iconCenterX = recycleIcon.x + 36;
+    const iconCenterY = recycleIcon.y + 40;
+    const dx = iconCenterX - cursorX;
+    const dy = iconCenterY - cursorY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist < 100) {
+      recycleAttempts++;
+      if (recycleAttempts >= 6) {
+        recycleGaveUp = true;
+        playSound('whoosh', 0.2);
+        return;
+      }
+      // Flee in opposite direction
+      const fleeDist = 120 + Math.random() * 60;
+      const angle = Math.atan2(dy, dx);
+      let newX = recycleIcon.x + Math.cos(angle) * fleeDist;
+      let newY = recycleIcon.y + Math.sin(angle) * fleeDist;
+
+      // Clamp to desktop bounds
+      const maxX = (typeof window !== 'undefined' ? window.innerWidth : 1024) - 80;
+      const maxY = (typeof window !== 'undefined' ? window.innerHeight : 768) - 120;
+      newX = Math.max(10, Math.min(maxX, newX));
+      newY = Math.max(10, Math.min(maxY, newY));
+
+      recycleIcon.x = newX;
+      recycleIcon.y = newY;
+      playSound('whoosh', 0.2);
+    }
+  }
+
   // Clock state
   let clockTime = $state('');
   let clockInterval: ReturnType<typeof setInterval>;
@@ -146,11 +273,13 @@
       dragState.targetX = e.clientX - dragState.offsetX;
       dragState.targetY = Math.max(0, e.clientY - dragState.offsetY);
     }
+
+    // Check recycle bin flee
+    checkRecycleFlee(e.clientX, e.clientY);
   }
 
   function handleStartClick() {
     playSound('click');
-    openWindow('test', 'My Computer', 'empty');
   }
 
   onMount(() => {
@@ -207,6 +336,19 @@
 
   <!-- Desktop area with windows -->
   <div class="desktop-area">
+    <!-- Desktop Icons -->
+    {#each icons as icon (icon.id)}
+      <button
+        class="desktop-icon"
+        class:gave-up={icon.id === 'recycle' && recycleGaveUp}
+        style="left: {icon.x}px; top: {icon.y}px; filter: {getIconShadow(icon)}"
+        onclick={() => handleIconClick(icon.id)}
+      >
+        <span class="icon-emoji">{icon.icon}</span>
+        <span class="icon-label">{icon.label}</span>
+      </button>
+    {/each}
+
     {#each windows.filter(w => w.visible) as win (win.id)}
       <div
         class="xp-window"
@@ -227,6 +369,15 @@
         </div>
         <div class="xp-window-body">
           {#if win.content === 'empty'}
+            <p style="padding: 20px; color: #666;">This folder is empty.</p>
+          {:else if win.content === 'ie'}
+            <div style="padding: 20px; text-align: center;">
+              <p style="font-size: 14px; font-weight: bold; color: #333;">This page cannot be displayed</p>
+              <p style="color: #666; margin-top: 8px;">The page you are looking for is currently unavailable.</p>
+            </div>
+          {:else if win.content === 'homework'}
+            <p style="padding: 20px; color: #333; font-size: 18px; text-align: center; font-style: italic;">Nice try.</p>
+          {:else if win.content === 'recycle'}
             <p style="padding: 20px; color: #666;">This folder is empty. Just like my soul.</p>
           {/if}
         </div>
@@ -820,5 +971,72 @@
     font-size: 12px;
     color: #000;
     font-family: 'Tahoma', 'Segoe UI', sans-serif;
+  }
+
+  /* ========================
+     DESKTOP ICONS
+     ======================== */
+  .desktop-icon {
+    position: absolute;
+    width: 72px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 2px;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    background: transparent;
+    cursor: pointer;
+    font-family: 'Tahoma', 'Segoe UI', sans-serif;
+    z-index: 5;
+    transition:
+      left 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+      top 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+      filter 0.1s ease-out;
+  }
+
+  .desktop-icon:hover {
+    background: rgba(49, 106, 197, 0.4);
+    border: 1px dashed rgba(49, 106, 197, 0.8);
+  }
+
+  .desktop-icon:active {
+    background: rgba(49, 106, 197, 0.6);
+    border: 1px solid rgba(49, 106, 197, 0.9);
+  }
+
+  .icon-emoji {
+    font-size: 32px;
+    line-height: 1;
+    pointer-events: none;
+  }
+
+  .icon-label {
+    font-size: 11px;
+    color: white;
+    text-align: center;
+    text-shadow:
+      1px 1px 2px rgba(0, 0, 0, 0.9),
+      -1px -1px 2px rgba(0, 0, 0, 0.9),
+      1px -1px 2px rgba(0, 0, 0, 0.9),
+      -1px 1px 2px rgba(0, 0, 0, 0.9);
+    white-space: pre-line;
+    line-height: 1.2;
+    pointer-events: none;
+  }
+
+  .desktop-icon.gave-up {
+    animation: icon-shake 0.4s ease-in-out;
+  }
+
+  @keyframes icon-shake {
+    0%, 100% { transform: translateX(0); }
+    15% { transform: translateX(-4px) rotate(-2deg); }
+    30% { transform: translateX(4px) rotate(2deg); }
+    45% { transform: translateX(-3px) rotate(-1deg); }
+    60% { transform: translateX(3px) rotate(1deg); }
+    75% { transform: translateX(-2px); }
+    90% { transform: translateX(2px); }
   }
 </style>
