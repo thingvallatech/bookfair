@@ -228,6 +228,7 @@
     <header class="site-header">
       <h1 class="nes-text is-warning">The Book Fair</h1>
       <p class="subtitle">at the end of the internet</p>
+      <p class="tagline">18 interactive toys from the Scholastic shelf of your childhood. Click one, lose an hour.</p>
     </header>
 
     <!-- The Shelf - with beanie hiding behind wood plank -->
@@ -416,6 +417,14 @@
     font-size: 0.6rem;
     color: #888;
     letter-spacing: 2px;
+  }
+
+  .tagline {
+    font-size: 0.5rem;
+    color: #aaa;
+    max-width: 400px;
+    margin: 0.5rem auto 0;
+    text-align: center;
   }
 
   .shelf-section {
