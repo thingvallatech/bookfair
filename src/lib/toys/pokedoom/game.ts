@@ -61,8 +61,8 @@ const ROT_SPEED = 0.04;
 const COLLISION_MARGIN = 0.2;
 const CATCH_RANGE = 3.0;
 const CATCH_ANGLE = Math.PI / 4; // 45 degrees
-const INTERRUPT_CHANCE = 0.002;
-const INTERRUPT_DURATION = 180; // ~3 seconds at 60fps
+const INTERRUPT_CHANCE = 0.0004; // ~2.4% per second at 60fps → roughly once per 40s
+const INTERRUPT_DURATION = 150; // ~2.5 seconds at 60fps
 const INITIAL_POKEBALLS = 20;
 const MAP_SIZE = 32;
 
@@ -320,8 +320,12 @@ export class Game {
 
 	private startLoop(): void {
 		const loop = () => {
-			this.update();
-			this.render();
+			try {
+				this.update();
+				this.render();
+			} catch (err) {
+				console.error('[PokeDOOM] Game loop error:', err);
+			}
 			this.animFrameId = requestAnimationFrame(loop);
 		};
 		this.animFrameId = requestAnimationFrame(loop);

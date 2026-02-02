@@ -6,17 +6,24 @@ export interface WallTexture {
 	data: ImageData;
 }
 
-// Tile coordinates in each tileset (col, row) - 16x16 grid
-// IMPORTANT: These coordinates need verification against the actual tileset images.
-// The overworld tileset is a grid of 16x16px tiles.
+// Pixel coordinates for tile extraction from the tilesets.
+// These are NOT on a uniform grid — coordinates were identified by
+// scanning the tileset for fully-opaque, wall-appropriate 16x16 regions.
 const TILE_DEFS = {
-	stoneBrick: { src: 'overworld', col: 5, row: 1 },
-	stoneWall: { src: 'overworld', col: 6, row: 1 },
-	woodPlank: { src: 'overworld', col: 1, row: 5 },
-	grass: { src: 'overworld', col: 0, row: 0 },
-	door: { src: 'overworld', col: 3, row: 5 },
-	caveWall: { src: 'cave', col: 1, row: 0 },
-	caveDark: { src: 'cave', col: 2, row: 0 }
+	// Gray stone blocks (from overworld.png castle area)
+	stoneBrick: { src: 'overworld', px: 352, py: 32 },
+	// Lighter stone variant
+	stoneWall: { src: 'overworld', px: 368, py: 16 },
+	// Warm brown wood/cobblestone
+	woodPlank: { src: 'overworld', px: 192, py: 208 },
+	// Dark brown stone for doors/accents
+	door: { src: 'overworld', px: 512, py: 288 },
+	// Grass (not used for walls, kept for completeness)
+	grass: { src: 'overworld', px: 192, py: 224 },
+	// Brown cave wall
+	caveWall: { src: 'cave', px: 0, py: 0 },
+	// Dark cave wall
+	caveDark: { src: 'cave', px: 16, py: 16 },
 } as const;
 
 export type TextureName = keyof typeof TILE_DEFS;
@@ -56,8 +63,8 @@ export async function loadTextures(): Promise<Map<TextureName, ImageData>> {
 		ctx.clearRect(0, 0, TEXTURE_SIZE, TEXTURE_SIZE);
 		ctx.drawImage(
 			img,
-			def.col * TILE_SIZE,
-			def.row * TILE_SIZE,
+			def.px,
+			def.py,
 			TILE_SIZE,
 			TILE_SIZE,
 			0,

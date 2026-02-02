@@ -44,7 +44,7 @@ export class Raycaster {
 	private zBuffer: Float64Array;
 
 	// Reusable sprite‑reading canvas (lazily created per texture)
-	private spriteCanvasCache: Map<string, { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D }> =
+	private spritePixelCache: Map<string, Uint8ClampedArray> =
 		new Map();
 
 	constructor(config: RaycastConfig) {
@@ -389,30 +389,21 @@ export class Raycaster {
 		}
 	}
 
-	/** Get pixel data for a sprite image, caching the canvas + draw result. */
+	/** Get pixel data for a sprite image, caching the extracted pixels. */
 	private getSpritePixelData(textureId: string, img: HTMLImageElement): Uint8ClampedArray | null {
-		let entry = this.spriteCanvasCache.get(textureId);
+		const cached = this.spritePixelCache.get(textureId);
+		if (cached) return cached;
 
-		if (!entry) {
+		try {
 			const canvas = document.createElement('canvas');
 			canvas.width = img.width;
 			canvas.height = img.height;
 			const ctx = canvas.getContext('2d');
 			if (!ctx) return null;
 			ctx.drawImage(img, 0, 0);
-			entry = { canvas, ctx };
-			this.spriteCanvasCache.set(textureId, entry);
-		}
-
-		// Re‑read in case image changed dimensions (unlikely but safe)
-		if (entry.canvas.width !== img.width || entry.canvas.height !== img.height) {
-			entry.canvas.width = img.width;
-			entry.canvas.height = img.height;
-			entry.ctx.drawImage(img, 0, 0);
-		}
-
-		try {
-			return entry.ctx.getImageData(0, 0, img.width, img.height).data;
+			const pixels = ctx.getImageData(0, 0, img.width, img.height).data;
+			this.spritePixelCache.set(textureId, pixels);
+			return pixels;
 		} catch {
 			return null;
 		}
