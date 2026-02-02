@@ -57,6 +57,7 @@
 
   function openChat(buddy: Buddy) {
     if (buddy.status === 'offline') return;
+    playSound('click', 0.3);
     selectedBuddy = buddy;
     currentView = 'chat';
     chatMessages = [
@@ -168,8 +169,8 @@
 
     <!-- Menu bar -->
     <div class="menu-bar">
-      <button onclick={() => currentView = 'buddies'}>My Buddies</button>
-      <button onclick={() => currentView = 'away'}>Away</button>
+      <button onclick={() => { currentView = 'buddies'; playSound('click', 0.2); }}>My Buddies</button>
+      <button onclick={() => { currentView = 'away'; playSound('click', 0.2); }}>Away</button>
     </div>
 
     <!-- Content area -->
@@ -266,7 +267,7 @@
               <button
                 class="away-preset"
                 class:active={myAwayMessage === msg}
-                onclick={() => myAwayMessage = msg}
+                onclick={() => { myAwayMessage = msg; playSound('click', 0.2); }}
               >
                 {msg}
               </button>

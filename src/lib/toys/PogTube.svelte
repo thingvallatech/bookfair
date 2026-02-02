@@ -67,6 +67,7 @@
 
   function startGame() {
     mode = 'game';
+    playSound('powerup', 0.3);
     // Create a random stack of pogs
     const shuffled = [...allPogs].sort(() => Math.random() - 0.5);
     gameStack = shuffled.slice(0, 8);
@@ -131,12 +132,17 @@
       }
     }
 
+    // Scatter sound after slam
+    setTimeout(() => playSound('scatter', 0.4), 200);
+
     if (newFlipped.length === 0) {
       gameMessage = 'No pogs flipped! Try charging more power.';
     } else if (newFlipped.length === gameStack.length) {
       gameMessage = `PERFECT SLAM! You flipped all ${newFlipped.length} pogs!`;
+      setTimeout(() => playSound('victory', 0.4), 500);
     } else {
       gameMessage = `You flipped ${newFlipped.length} pogs! They're yours now.`;
+      setTimeout(() => playSound('collect', 0.3), 500);
     }
   }
 
@@ -179,7 +185,7 @@
       <button
         class="tab"
         class:active={mode === 'collection'}
-        onclick={() => mode = 'collection'}
+        onclick={() => { mode = 'collection'; playSound('click', 0.2); }}
       >My Pogs ({collection.length})</button>
       <button
         class="tab"
@@ -197,7 +203,7 @@
           <button
             class="pog"
             style="--pog-color: {pog.color}; --rarity-color: {rarityColors[pog.rarity]}"
-            onclick={() => selectedPog = selectedPog?.id === pog.id ? null : pog}
+            onclick={() => { selectedPog = selectedPog?.id === pog.id ? null : pog; playSound('click', 0.2); }}
             class:selected={selectedPog?.id === pog.id}
           >
             <div class="pog-face">

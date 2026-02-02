@@ -266,7 +266,7 @@
     <div class="controls">
       <div class="control-group">
         <label>Difficulty:</label>
-        <select bind:value={difficulty}>
+        <select bind:value={difficulty} onchange={() => playSound('click', 0.2)}>
           <option value="easy">Easy</option>
           <option value="medium">Medium</option>
           <option value="hard">Hard</option>
@@ -276,7 +276,7 @@
       <div class="buttons">
         <button onclick={nextShape}>Next Shape</button>
         <button onclick={newPattern}>New Pattern</button>
-        <button onclick={() => showHint = !showHint}>
+        <button onclick={() => { showHint = !showHint; playSound('click', 0.2); }}>
           {showHint ? 'Hide' : 'Show'} Hint
         </button>
       </div>

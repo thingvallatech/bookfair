@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import CloseButton from '$lib/components/CloseButton.svelte';
   import HidingBeanie from '$lib/components/HidingBeanie.svelte';
+  import ToyLoader from '$lib/components/ToyLoader.svelte';
   import { playSound } from '$lib/stores/audio';
   import { registerSpots, getBeaniesForArea, type HidingSpot } from '$lib/stores/beanieHunt';
   import type { Beanie } from '$lib/stores/beanies';
@@ -52,6 +53,7 @@
 
   let isPlaying = $state(false);
   let isLoading = $state(false);
+  let ready = $state(false);
   let currentSkin = $state(0);
   let currentPreset = $state(0);
   let shuffleMode = $state(false);
@@ -295,6 +297,7 @@
       }
     });
 
+    ready = true;
     draw();
   });
 
@@ -310,10 +313,14 @@
 </script>
 
 <div class="winamp-wrapper">
+  {#if !ready}
+    <ToyLoader toy="winamp" />
+    <CloseButton {onClose} />
+  {/if}
   {#if hiddenBeanie}
     <HidingBeanie beanie={hiddenBeanie} class="winamp-beanie" />
   {/if}
-  <div class="winamp" style="--bg: {skins[currentSkin].bg}; --accent: {skins[currentSkin].accent}; --text: {skins[currentSkin].text}">
+  <div class="winamp" class:hidden={!ready} style="--bg: {skins[currentSkin].bg}; --accent: {skins[currentSkin].accent}; --text: {skins[currentSkin].text}">
     <CloseButton {onClose} />
 
     <!-- Title bar -->
@@ -391,7 +398,7 @@
           class="skin-btn"
           class:active={currentSkin === i}
           style="background: {skin.accent}"
-          onclick={() => currentSkin = i}
+          onclick={() => { currentSkin = i; playSound('click', 0.2); }}
         ></button>
       {/each}
     </div>
@@ -405,7 +412,7 @@
         <button
           class="playlist-item"
           class:active={currentTrack === i}
-          onclick={() => { currentTrack = i; trackTime = 0; }}
+          onclick={() => { currentTrack = i; trackTime = 0; playSound('click', 0.2); }}
         >
           <span class="track-num">{i + 1}.</span>
           <span class="track-name">{track.title}</span>
@@ -426,6 +433,10 @@
     align-items: center;
     justify-content: center;
     background: #1a1a1a;
+  }
+
+  .hidden {
+    display: none;
   }
 
   /* Beanie peeking from behind player */

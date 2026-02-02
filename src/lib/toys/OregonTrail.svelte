@@ -90,6 +90,7 @@
   ];
 
   function startGame() {
+    playSound('click', 0.3);
     game.screen = 'name';
   }
 
@@ -97,6 +98,7 @@
     if (!nameInput.trim()) return;
     game.name = nameInput;
     game.screen = 'store';
+    playSound('ding', 0.3);
   }
 
   function buyItem(item: string, cost: number, amount: number) {
@@ -175,6 +177,7 @@
       const nextIdx = landmarks.findIndex(l => l.miles === landmark.miles) + 1;
       game.nextLandmark = nextIdx < landmarks.length ? landmarks[nextIdx].miles : TOTAL_MILES;
       game.screen = 'landmark';
+      playSound('ding', 0.4);
       return;
     }
 
@@ -258,6 +261,7 @@
   }
 
   function continueFromEvent() {
+    playSound('click', 0.2);
     game.screen = 'travel';
     checkEndConditions();
   }
@@ -273,6 +277,7 @@
   }
 
   function rest() {
+    playSound('success', 0.2);
     game.day += 1;
     game.food = Math.max(0, game.food - 3);
     game.health = Math.min(100, game.health + 10);

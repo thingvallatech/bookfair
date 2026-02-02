@@ -169,7 +169,7 @@
         <div class="bubble-buttons">
           {#if !showResponse}
             <button onclick={nextTip}>Next Tip</button>
-            <button onclick={() => showResponse = false}>Go Away</button>
+            <button onclick={() => { showResponse = false; playSound('whoosh', 0.2); }}>Go Away</button>
           {/if}
         </div>
       </div>

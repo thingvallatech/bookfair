@@ -357,7 +357,7 @@
             class="color-btn"
             class:active={currentColor === color}
             style="background-color: {color};"
-            onclick={() => currentColor = color}
+            onclick={() => { currentColor = color; playSound('click', 0.15); }}
           ></button>
         {/each}
       </div>

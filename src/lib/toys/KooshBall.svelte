@@ -93,6 +93,7 @@
 
       // Squish on grab
       ball.squishVel = -0.3;
+      playSound('pop', 0.2);
     }
   }
 
@@ -118,6 +119,12 @@
 
     // Squish on release
     ball.squishVel = 0.2;
+
+    // Sound on throw (louder for stronger throws)
+    const throwSpeed = Math.hypot(ball.vx, ball.vy);
+    if (throwSpeed > 2) {
+      playSound('whoosh', Math.min(0.4, throwSpeed * 0.03));
+    }
   }
 
   function handleTouchStart(e: TouchEvent) {

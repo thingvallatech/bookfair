@@ -111,6 +111,9 @@
       clearInterval(progressInterval);
       progressInterval = null;
     }
+    if (isConnecting || isConnected) {
+      playSound('click', 0.3);
+    }
     isConnecting = false;
     isConnected = false;
     connectionPhase = '';

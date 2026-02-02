@@ -156,6 +156,7 @@
 
     if (score > highScore) {
       highScore = score;
+      playSound('victory', 0.4);
       // Save high score
       try {
         localStorage.setItem('snake-highscore', String(highScore));
@@ -208,12 +209,14 @@
           e.preventDefault();
           gameState = 'paused';
           clearTimeout(gameLoop);
+          playSound('click', 0.2);
           break;
       }
     } else if (gameState === 'paused') {
       if (e.key === ' ') {
         e.preventDefault();
         gameState = 'playing';
+        playSound('click', 0.2);
         runGameLoop();
       }
     }
@@ -462,7 +465,7 @@
       <button
         class="pause-btn"
         class:hidden={gameState !== 'playing'}
-        onclick={() => { gameState = 'paused'; clearTimeout(gameLoop); }}
+        onclick={() => { gameState = 'paused'; clearTimeout(gameLoop); playSound('click', 0.2); }}
         aria-label="Pause game"
       >
         ⏸️
