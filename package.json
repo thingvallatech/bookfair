@@ -21,6 +21,7 @@
 		"vite": "^7.2.6"
 	},
 	"dependencies": {
+		"@sentry/sveltekit": "^10.38.0",
 		"@sveltejs/adapter-node": "^5.5.2",
 		"@types/three": "^0.182.0",
 		"butterchurn": "^2.6.7",
