@@ -1,13 +1,29 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import CloseButton from '$lib/components/CloseButton.svelte';
+  import HidingBeanie from '$lib/components/HidingBeanie.svelte';
   import { playSound } from '$lib/stores/audio';
+  import { registerSpots, getBeaniesForArea, type HidingSpot } from '$lib/stores/beanieHunt';
+  import type { Beanie } from '$lib/stores/beanies';
 
   interface Props {
     onClose: () => void;
   }
 
   let { onClose }: Props = $props();
+
+  // ========================
+  // XP BOOT SEQUENCE
+  // ========================
+  let booting = $state(true);
+  let bootProgress = $state(0);
+
+  // Beanie integration
+  const hidingSpots: HidingSpot[] = [
+    { id: 'behind-start' },
+    { id: 'in-tray' },
+  ];
+  let areaBeanies = $state<Map<string, Beanie>>(new Map());
 
   // Mouse position for parallax (0-1 normalized)
   let mx = $state(0.5);
@@ -233,12 +249,18 @@
 
   let loginPassword = $state('');
   let loginFailed = $state(false);
+  let lastRoastThreshold = $state(0);
 
   function getCurrentRoast(): { text: string; color: string; width: number } {
     const len = loginPassword.length;
     let current = ROASTS[0];
     for (const r of ROASTS) {
       if (len >= r[0]) current = r;
+    }
+    // Play ding when crossing a new threshold
+    if (current[0] !== lastRoastThreshold && len > 0) {
+      lastRoastThreshold = current[0];
+      playSound('ding', 0.2);
     }
     return {
       text: current[1],
@@ -355,7 +377,7 @@
       startMenuOpen = true;
       submenuChain = [];
     }
-    playSound('click');
+    playSound('pop');
   }
 
   function closeStartMenu() {
@@ -393,18 +415,13 @@
     }
   }
 
-  // Clock state
-  let clockTime = $state('');
+  // Fast-forward clock (3x speed)
+  let clockDate = $state(new Date());
   let clockInterval: ReturnType<typeof setInterval>;
 
-  function updateClock() {
-    const now = new Date();
-    let hours = now.getHours();
-    const minutes = now.getMinutes().toString().padStart(2, '0');
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12 || 12;
-    clockTime = `${hours}:${minutes} ${ampm}`;
-  }
+  let clockDisplay = $derived(
+    clockDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+  );
 
   // ========================
   // ERROR HYDRA (Gag 8)
@@ -452,6 +469,7 @@
     if (errors.length >= 8) {
       // Trigger BSOD flash then clear all
       bsodFlash = true;
+      playSound('hit');
       playSound('death', 0.4);
       setTimeout(() => {
         bsodFlash = false;
@@ -529,6 +547,99 @@
         closeStartMenu();
       }
     }
+    if (contextMenuOpen && !target.closest('.context-menu')) {
+      closeContextMenu();
+    }
+  }
+
+  // ========================
+  // CONTEXT MENU FROM HELL (Gag 9)
+  // ========================
+  let contextMenuOpen = $state(false);
+  let contextMenuX = $state(0);
+  let contextMenuY = $state(0);
+  let desktopSpinning = $state(false);
+  let desktopHidden = $state(false);
+
+  interface ContextItem {
+    label?: string;
+    icon?: string;
+    action?: string;
+    type?: 'separator';
+  }
+
+  const CONTEXT_ITEMS: ContextItem[] = [
+    { label: 'Refresh', icon: '\u21BB', action: 'refresh' },
+    { label: 'Refresh (spiritually)', icon: '\u21BB', action: 'none' },
+    { label: 'Refresh (but angrier)', icon: '\u21BB', action: 'none' },
+    { type: 'separator' },
+    { label: 'Paste', icon: '\uD83D\uDCCB', action: 'none' },
+    { label: 'Paste (but worse)', icon: '\uD83D\uDCCB', action: 'none' },
+    { label: 'Paste (judgmentally)', icon: '\uD83D\uDCCB', action: 'none' },
+    { type: 'separator' },
+    { label: 'Undo', icon: '\u21A9', action: 'none' },
+    { label: 'Undo undo', icon: '\u21A9', action: 'none' },
+    { label: 'Undo undo undo', icon: '\u21A9', action: 'none' },
+    { label: 'Redo (just kidding)', icon: '\u21AA', action: 'none' },
+    { type: 'separator' },
+    { label: 'Properties (emotional)', icon: '\u2699', action: 'none' },
+    { label: 'Properties (physical)', icon: '\u2699', action: 'none' },
+    { label: 'Properties (metaphysical)', icon: '\u2699', action: 'none' },
+    { type: 'separator' },
+    { label: 'New Folder', icon: '\uD83D\uDCC1', action: 'none' },
+    { label: 'New Regret', icon: '\uD83D\uDCC1', action: 'none' },
+    { label: 'New Existential Crisis', icon: '\uD83D\uDCC1', action: 'none' },
+    { label: 'New Spreadsheet of Lies', icon: '\uD83D\uDCC1', action: 'none' },
+    { type: 'separator' },
+    { label: 'Sort by Name', icon: '\uD83D\uDCCA', action: 'none' },
+    { label: 'Sort by Date', icon: '\uD83D\uDCCA', action: 'none' },
+    { label: 'Sort by Existential Dread', icon: '\uD83D\uDCCA', action: 'none' },
+    { label: 'Sort by Vibes', icon: '\uD83D\uDCCA', action: 'none' },
+    { label: 'Sort by Aura', icon: '\uD83D\uDCCA', action: 'none' },
+    { type: 'separator' },
+    { label: 'Delete Desktop', icon: '\uD83D\uDDD1\uFE0F', action: 'delete-desktop' },
+    { label: 'Delete System32 (joke)', icon: '\uD83D\uDC80', action: 'none' },
+    { type: 'separator' },
+    { label: 'Open Task Manager', icon: '\uD83D\uDCCA', action: 'none' },
+    { label: "Open Task Manager's Manager", icon: '\uD83D\uDCCA', action: 'none' },
+    { type: 'separator' },
+    { label: 'Screen Resolution: Bad', icon: '\uD83D\uDDA5\uFE0F', action: 'none' },
+    { label: 'Screen Resolution: Worse', icon: '\uD83D\uDDA5\uFE0F', action: 'none' },
+    { label: 'Screen Resolution: Potato', icon: '\uD83E\uDD54', action: 'none' },
+    { type: 'separator' },
+    { label: 'Help', icon: '\u2753', action: 'none' },
+    { label: 'Help (but louder)', icon: '\uD83D\uDCE2', action: 'none' },
+    { label: 'Scream into the void', icon: '\uD83D\uDD73\uFE0F', action: 'none' },
+  ];
+
+  function handleDesktopContextMenu(e: MouseEvent) {
+    // Only open if clicking on the desktop area itself, not on icons/windows/taskbar
+    const target = e.target as HTMLElement;
+    if (target.closest('.desktop-icon') || target.closest('.xp-window') || target.closest('.taskbar') || target.closest('.context-menu')) {
+      return;
+    }
+    e.preventDefault();
+    contextMenuX = e.clientX;
+    contextMenuY = e.clientY;
+    contextMenuOpen = true;
+    playSound('click', 0.2);
+  }
+
+  function handleContextAction(action: string) {
+    contextMenuOpen = false;
+    if (action === 'refresh') {
+      desktopSpinning = true;
+      setTimeout(() => { desktopSpinning = false; }, 600);
+    } else if (action === 'delete-desktop') {
+      desktopHidden = true;
+      setTimeout(() => { desktopHidden = false; }, 2000);
+    } else {
+      playSound('error');
+    }
+  }
+
+  function closeContextMenu() {
+    contextMenuOpen = false;
   }
 
   // ========================
@@ -593,6 +704,27 @@
     const win = windows.find(w => w.id === id);
     if (win) {
       win.zIndex = nextZ++;
+    }
+    // Jealous windows: all other visible windows sulk
+    for (const w of windows) {
+      if (w.id !== id && w.visible) {
+        w.sulking = true;
+        w.title = w.originalTitle + ' ...fine.';
+      } else if (w.id === id) {
+        w.sulking = false;
+        w.title = w.originalTitle;
+      }
+    }
+  }
+
+  function getSulkTransform(win: XPWindow): string {
+    if (!win.sulking) return 'translate(0, 0)';
+    const screenW = typeof window !== 'undefined' ? window.innerWidth : 1024;
+    const winCenterX = win.x + win.width / 2;
+    if (winCenterX < screenW / 2) {
+      return 'translate(-30px, 0)';
+    } else {
+      return 'translate(30px, 0)';
     }
   }
 
@@ -661,12 +793,30 @@
   }
 
   onMount(() => {
-    playSound('powerup', 0.4);
-    updateClock();
-    clockInterval = setInterval(updateClock, 10000);
+    // Beanie registration
+    registerSpots('bados', hidingSpots);
+    areaBeanies = getBeaniesForArea('bados');
+
+    // Boot sequence: fill progress bar over 2s
+    const bootInterval = setInterval(() => {
+      bootProgress = Math.min(100, bootProgress + 2);
+      if (bootProgress >= 100) {
+        clearInterval(bootInterval);
+      }
+    }, 40); // 40ms * 50 steps = 2s
+
     setTimeout(() => {
-      welcomeVisible = true;
-    }, 1500);
+      booting = false;
+      playSound('powerup', 0.4);
+      // Welcome dialog 0.5s after desktop appears
+      setTimeout(() => {
+        welcomeVisible = true;
+      }, 500);
+    }, 2000);
+
+    clockInterval = setInterval(() => {
+      clockDate = new Date(clockDate.getTime() + 3000);
+    }, 1000);
   });
 
   onDestroy(() => {
@@ -684,6 +834,20 @@
   class="bados-desktop"
   style="--mx: {mx}; --my: {my}"
 >
+  {#if booting}
+    <!-- XP Boot Screen -->
+    <div class="boot-screen">
+      <div class="boot-content">
+        <div class="boot-logo">
+          <span class="boot-flag">&#127987;&#65039;</span>
+          <span class="boot-title">Windows<span class="boot-xp">XP</span></span>
+        </div>
+        <div class="boot-bar-track">
+          <div class="boot-bar-fill" style="width: {bootProgress}%"></div>
+        </div>
+      </div>
+    </div>
+  {:else}
   <!-- Bliss Wallpaper -->
   <div class="wallpaper">
     <!-- Sky -->
@@ -717,12 +881,15 @@
   </div>
 
   <!-- Desktop area with windows -->
-  <div class="desktop-area">
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="desktop-area" oncontextmenu={handleDesktopContextMenu}>
     <!-- Desktop Icons -->
     {#each icons as icon (icon.id)}
       <button
         class="desktop-icon"
         class:gave-up={icon.id === 'recycle' && recycleGaveUp}
+        class:icon-spinning={desktopSpinning}
+        class:icon-hidden={desktopHidden}
         style="left: {icon.x}px; top: {icon.y}px; filter: {getIconShadow(icon)}"
         onclick={() => handleIconClick(icon.id)}
       >
@@ -734,7 +901,7 @@
     {#each windows.filter(w => w.visible) as win (win.id)}
       <div
         class="xp-window"
-        style="left: {win.x}px; top: {win.y}px; width: {win.id === 'notepad' ? `calc(${win.width}px + ${notepadTitleStretch * 100}px)` : `${win.width}px`}; height: {win.height}px; z-index: {win.zIndex}"
+        style="left: {win.x}px; top: {win.y}px; width: {win.id === 'notepad' ? `calc(${win.width}px + ${notepadTitleStretch * 100}px)` : `${win.width}px`}; height: {win.height}px; z-index: {win.zIndex}; transform: {getSulkTransform(win)}"
         onmousedown={() => bringToFront(win.id)}
         onmouseenter={win.content === 'progress' ? () => { isWatchingProgress = true; } : undefined}
         onmouseleave={win.content === 'progress' ? () => { isWatchingProgress = false; } : undefined}
@@ -749,7 +916,7 @@
           onmousemove={win.id === 'notepad' ? handleNotepadTitlebarMove : undefined}
           onmouseleave={win.id === 'notepad' ? handleNotepadTitlebarLeave : undefined}
         >
-          <span class="xp-title-text">{win.content === 'progress' && progressComplete ? 'Update complete!' : win.sulking ? win.title + ' ...fine.' : win.title}</span>
+          <span class="xp-title-text">{win.content === 'progress' && progressComplete ? 'Update complete!' : win.title}</span>
           <div class="xp-titlebar-buttons">
             <button class="xp-btn xp-btn-minimize" aria-label="Minimize">_</button>
             <button class="xp-btn xp-btn-maximize" aria-label="Maximize">□</button>
@@ -983,8 +1150,47 @@
     </div>
   {/if}
 
+  <!-- Context Menu from Hell -->
+  {#if contextMenuOpen}
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div
+      class="context-menu"
+      style="left: {contextMenuX}px; top: {contextMenuY}px"
+      role="menu"
+    >
+      {#each CONTEXT_ITEMS as item}
+        {#if item.type === 'separator'}
+          <div class="context-separator"></div>
+        {:else}
+          <!-- svelte-ignore a11y_no_static_element_interactions a11y_click_events_have_key_events -->
+          <div
+            class="context-item"
+            onclick={() => handleContextAction(item.action ?? 'none')}
+            role="menuitem"
+            tabindex="-1"
+          >
+            <span class="context-icon">{item.icon}</span>
+            <span class="context-label">{item.label}</span>
+          </div>
+        {/if}
+      {/each}
+    </div>
+  {/if}
+
   <!-- Close button -->
   <CloseButton onClose={onClose} variant="light" />
+
+  <!-- Beanie hiding spots -->
+  {#if areaBeanies.has('behind-start')}
+    <div class="beanie-behind-start">
+      <HidingBeanie beanie={areaBeanies.get('behind-start')!} />
+    </div>
+  {/if}
+  {#if areaBeanies.has('in-tray')}
+    <div class="beanie-in-tray">
+      <HidingBeanie beanie={areaBeanies.get('in-tray')!} />
+    </div>
+  {/if}
 
   <!-- Taskbar -->
   <div class="taskbar">
@@ -1015,9 +1221,10 @@
           </div>
         {/if}
       </div>
-      <span class="tray-clock">{clockTime}</span>
+      <span class="tray-clock">{clockDisplay}</span>
     </div>
   </div>
+  {/if}
 </div>
 
 <style>
@@ -1442,6 +1649,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    transition: transform 1.5s ease-in-out;
   }
 
   .xp-titlebar {
@@ -2503,5 +2711,164 @@
   @keyframes submenu-slide-in-left {
     0% { transform: translateX(8px); opacity: 0; }
     100% { transform: translateX(0); opacity: 1; }
+  }
+
+  /* ========================
+     CONTEXT MENU FROM HELL
+     ======================== */
+  .context-menu {
+    position: fixed;
+    z-index: 300;
+    background: #fff;
+    border: 1px solid #404040;
+    box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.3);
+    padding: 2px 0;
+    min-width: 220px;
+    max-height: 60vh;
+    overflow-y: auto;
+    font-family: 'Tahoma', 'Segoe UI', sans-serif;
+    font-size: 12px;
+    animation: context-appear 0.1s ease-out;
+  }
+
+  @keyframes context-appear {
+    0% { opacity: 0; transform: scale(0.95); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  .context-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 24px 4px 8px;
+    cursor: default;
+    color: #000;
+    white-space: nowrap;
+  }
+
+  .context-item:hover {
+    background: #316ac5;
+    color: #fff;
+  }
+
+  .context-icon {
+    width: 18px;
+    text-align: center;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+
+  .context-label {
+    flex: 1;
+  }
+
+  .context-separator {
+    height: 1px;
+    background: #c0c0c0;
+    margin: 3px 4px;
+  }
+
+  /* ========================
+     XP BOOT SCREEN
+     ======================== */
+  .boot-screen {
+    position: absolute;
+    inset: 0;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+
+  .boot-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .boot-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .boot-flag {
+    font-size: 40px;
+    line-height: 1;
+  }
+
+  .boot-title {
+    font-size: 36px;
+    font-weight: bold;
+    color: #fff;
+    font-family: 'Franklin Gothic Medium', 'Tahoma', sans-serif;
+    letter-spacing: -1px;
+  }
+
+  .boot-xp {
+    color: #ff8c00;
+    font-style: italic;
+    margin-left: 4px;
+  }
+
+  .boot-bar-track {
+    width: 200px;
+    height: 14px;
+    background: #000;
+    border: 1px solid #333;
+    border-radius: 2px;
+    overflow: hidden;
+    padding: 2px;
+  }
+
+  .boot-bar-fill {
+    height: 100%;
+    background: repeating-linear-gradient(
+      90deg,
+      #3169c6 0px,
+      #3169c6 6px,
+      transparent 6px,
+      transparent 8px
+    );
+    border-radius: 1px;
+    transition: width 0.04s linear;
+  }
+
+  /* ========================
+     ICON CONTEXT MENU EFFECTS
+     ======================== */
+  .desktop-icon.icon-spinning {
+    animation: icon-spin 0.6s ease-in-out;
+  }
+
+  @keyframes icon-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  .desktop-icon.icon-hidden {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  /* ========================
+     BEANIE HIDING SPOTS
+     ======================== */
+  .beanie-behind-start {
+    position: absolute;
+    bottom: 28px;
+    left: 8px;
+    z-index: 95;
+    pointer-events: auto;
+  }
+
+  .beanie-in-tray {
+    position: absolute;
+    bottom: 28px;
+    right: 100px;
+    z-index: 95;
+    pointer-events: auto;
   }
 </style>
