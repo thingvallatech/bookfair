@@ -35,6 +35,8 @@
   import ScholasticOrder from '$lib/toys/ScholasticOrder.svelte';
   import Furby from '$lib/toys/Furby.svelte';
   import AskJeeves from '$lib/toys/AskJeeves.svelte';
+  import CarmenSandiego from '$lib/toys/CarmenSandiego.svelte';
+  import Encarta from '$lib/toys/Encarta.svelte';
 
   // CRT boot animation overlay
   let showCRTBoot = $state(true);
@@ -80,6 +82,8 @@
     { id: 'scholastic', name: 'Book Order', icon: '📚', desc: 'Circle your picks' },
     { id: 'furby', name: 'Furby', icon: '🧸', desc: 'Dah boo-loo!' },
     { id: 'askjeeves', name: 'Ask Jeeves', icon: '🎩', desc: 'Ask the butler' },
+    { id: 'carmen', name: 'Carmen Sandiego', icon: '🔍', desc: 'Catch the thief' },
+    { id: 'encarta', name: 'Encarta', icon: '📀', desc: 'CD-ROM knowledge' },
   ];
 
   // Single hiding spot behind the wood shelf
@@ -290,7 +294,7 @@
     <header class="site-header">
       <h1 class="nes-text is-warning">The Book Fair</h1>
       <p class="subtitle">at the end of the internet</p>
-      <p class="tagline">25 interactive toys from the Scholastic shelf of your childhood. Click one, lose an hour.</p>
+      <p class="tagline">27 interactive toys from the Scholastic shelf of your childhood. Click one, lose an hour.</p>
       <button class="collection-btn" onclick={() => { playSound('collect', 0.3); showGallery = true; }}>
         🎒 {discoveryStats.discovered}/{discoveryStats.total}
       </button>
@@ -517,6 +521,14 @@
 {:else if activeObject === 'askjeeves'}
   <div class="object-view" role="dialog" aria-label="Ask Jeeves">
     <AskJeeves onClose={closeObject} />
+  </div>
+{:else if activeObject === 'carmen'}
+  <div class="object-view" role="dialog" aria-label="Carmen Sandiego">
+    <CarmenSandiego onClose={closeObject} />
+  </div>
+{:else if activeObject === 'encarta'}
+  <div class="object-view" role="dialog" aria-label="Encarta Encyclopedia">
+    <Encarta onClose={closeObject} />
   </div>
 {/if}
 
@@ -1035,6 +1047,10 @@
   .toy-furby .item-icon { animation: idle-wobble 3s ease-in-out infinite; animation-delay: 0.6s; }
   /* Ask Jeeves - nod */
   .toy-askjeeves .item-icon { animation: idle-nod 4s ease-in-out infinite; animation-delay: 1.5s; }
+  /* Carmen Sandiego - slither (sneaky movement) */
+  .toy-carmen .item-icon { animation: idle-slither 3.5s ease-in-out infinite; animation-delay: 0.8s; }
+  /* Encarta - spin (like a CD) */
+  .toy-encarta .item-icon { animation: idle-spin 8s linear infinite; animation-delay: 2.2s; }
 
   @media (prefers-reduced-motion: reduce) {
     .shelf-item {
