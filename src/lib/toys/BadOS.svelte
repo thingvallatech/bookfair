@@ -26,13 +26,131 @@
     clockTime = `${hours}:${minutes} ${ampm}`;
   }
 
+  // ========================
+  // XP WINDOW SYSTEM
+  // ========================
+  interface XPWindow {
+    id: string;
+    title: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    zIndex: number;
+    visible: boolean;
+    content: string;
+    sulking: boolean;
+    originalTitle: string;
+  }
+
+  let windows = $state<XPWindow[]>([]);
+  let nextZ = $state(10);
+  let dragState = $state<{
+    id: string;
+    offsetX: number;
+    offsetY: number;
+    targetX: number;
+    targetY: number;
+  } | null>(null);
+  let dragAnimFrame: number | null = null;
+
+  function openWindow(id: string, title: string, content: string, width = 400, height = 300) {
+    const existing = windows.find(w => w.id === id);
+    if (existing) {
+      existing.visible = true;
+      bringToFront(id);
+      return;
+    }
+    const x = Math.max(20, (window.innerWidth - width) / 2 + (Math.random() - 0.5) * 80);
+    const y = Math.max(20, (window.innerHeight - height - 36) / 2 + (Math.random() - 0.5) * 60);
+    windows.push({
+      id,
+      title,
+      x,
+      y,
+      width,
+      height,
+      zIndex: nextZ++,
+      visible: true,
+      content,
+      sulking: false,
+      originalTitle: title
+    });
+  }
+
+  function closeWindow(id: string) {
+    const win = windows.find(w => w.id === id);
+    if (win) win.visible = false;
+    playSound('click');
+  }
+
+  function bringToFront(id: string) {
+    const win = windows.find(w => w.id === id);
+    if (win) {
+      win.zIndex = nextZ++;
+    }
+  }
+
+  function startDrag(e: MouseEvent, id: string) {
+    const win = windows.find(w => w.id === id);
+    if (!win) return;
+    bringToFront(id);
+    dragState = {
+      id,
+      offsetX: e.clientX - win.x,
+      offsetY: e.clientY - win.y,
+      targetX: win.x,
+      targetY: win.y
+    };
+    if (!dragAnimFrame) {
+      dragAnimFrame = requestAnimationFrame(dragLerp);
+    }
+    e.preventDefault();
+  }
+
+  function dragLerp() {
+    if (!dragState) {
+      dragAnimFrame = null;
+      return;
+    }
+    const win = windows.find(w => w.id === dragState!.id);
+    if (win) {
+      const lerpFactor = 0.15;
+      win.x += (dragState.targetX - win.x) * lerpFactor;
+      win.y += (dragState.targetY - win.y) * lerpFactor;
+    }
+    dragAnimFrame = requestAnimationFrame(dragLerp);
+  }
+
+  function endDrag() {
+    if (dragState) {
+      const win = windows.find(w => w.id === dragState!.id);
+      if (win) {
+        win.x = dragState.targetX;
+        win.y = dragState.targetY;
+      }
+      dragState = null;
+    }
+    if (dragAnimFrame) {
+      cancelAnimationFrame(dragAnimFrame);
+      dragAnimFrame = null;
+    }
+  }
+
   function handleMouseMove(e: MouseEvent) {
     mx = e.clientX / window.innerWidth;
     my = e.clientY / window.innerHeight;
+
+    // Update drag target position
+    if (dragState) {
+      dragState.targetX = e.clientX - dragState.offsetX;
+      dragState.targetY = Math.max(0, e.clientY - dragState.offsetY);
+    }
   }
 
   function handleStartClick() {
     playSound('click');
+    openWindow('test', 'My Computer', 'empty');
   }
 
   onMount(() => {
@@ -43,10 +161,13 @@
 
   onDestroy(() => {
     clearInterval(clockInterval);
+    if (dragAnimFrame) {
+      cancelAnimationFrame(dragAnimFrame);
+    }
   });
 </script>
 
-<svelte:window onmousemove={handleMouseMove} />
+<svelte:window onmousemove={handleMouseMove} onmouseup={endDrag} />
 
 <div
   class="bados-desktop"
@@ -84,8 +205,34 @@
     </div>
   </div>
 
-  <!-- Desktop icon area (empty for now) -->
-  <div class="desktop-area"></div>
+  <!-- Desktop area with windows -->
+  <div class="desktop-area">
+    {#each windows.filter(w => w.visible) as win (win.id)}
+      <div
+        class="xp-window"
+        style="left: {win.x}px; top: {win.y}px; width: {win.width}px; height: {win.height}px; z-index: {win.zIndex}"
+        onmousedown={() => bringToFront(win.id)}
+        role="dialog"
+        tabindex="-1"
+        aria-label={win.title}
+      >
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="xp-titlebar" onmousedown={(e) => startDrag(e, win.id)}>
+          <span class="xp-title-text">{win.sulking ? win.title + ' ...fine.' : win.title}</span>
+          <div class="xp-titlebar-buttons">
+            <button class="xp-btn xp-btn-minimize" aria-label="Minimize">_</button>
+            <button class="xp-btn xp-btn-maximize" aria-label="Maximize">□</button>
+            <button class="xp-btn xp-btn-close" onclick={() => closeWindow(win.id)} aria-label="Close">×</button>
+          </div>
+        </div>
+        <div class="xp-window-body">
+          {#if win.content === 'empty'}
+            <p style="padding: 20px; color: #666;">This folder is empty. Just like my soul.</p>
+          {/if}
+        </div>
+      </div>
+    {/each}
+  </div>
 
   <!-- Close button -->
   <CloseButton onClose={onClose} variant="light" />
@@ -514,5 +661,164 @@
     text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.4);
     font-family: 'Tahoma', 'Segoe UI', sans-serif;
     white-space: nowrap;
+  }
+
+  /* ========================
+     XP WINDOW SYSTEM
+     ======================== */
+  .xp-window {
+    position: absolute;
+    border-radius: 8px 8px 0 0;
+    border: 1px solid #0054e3;
+    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .xp-titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 28px;
+    min-height: 28px;
+    padding: 0 4px 0 8px;
+    background: linear-gradient(
+      180deg,
+      #0058e6 0%,
+      #1a6ff5 20%,
+      #3a8cf4 50%,
+      #1a6ff5 80%,
+      #0058e6 100%
+    );
+    border-radius: 8px 8px 0 0;
+    cursor: move;
+    user-select: none;
+  }
+
+  .xp-title-text {
+    font-size: 12px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.4);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    font-family: 'Tahoma', 'Segoe UI', sans-serif;
+  }
+
+  .xp-titlebar-buttons {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: 8px;
+  }
+
+  .xp-btn {
+    width: 21px;
+    height: 21px;
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: bold;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-family: 'Tahoma', 'Segoe UI', sans-serif;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.4),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.15),
+      inset 1px 0 0 rgba(255, 255, 255, 0.2),
+      inset -1px 0 0 rgba(0, 0, 0, 0.1);
+  }
+
+  .xp-btn-minimize,
+  .xp-btn-maximize {
+    background: linear-gradient(
+      180deg,
+      #d8e6f7 0%,
+      #c2d5ef 25%,
+      #a8c0e0 50%,
+      #94b0d4 75%,
+      #88a4c8 100%
+    );
+    color: #1a3a6e;
+  }
+
+  .xp-btn-minimize:hover,
+  .xp-btn-maximize:hover {
+    background: linear-gradient(
+      180deg,
+      #e4eefa 0%,
+      #d2e1f5 25%,
+      #bcd0ec 50%,
+      #a8c0e0 75%,
+      #9cb4d6 100%
+    );
+  }
+
+  .xp-btn-minimize:active,
+  .xp-btn-maximize:active {
+    background: linear-gradient(
+      180deg,
+      #94b0d4 0%,
+      #88a4c8 50%,
+      #7a96ba 100%
+    );
+    box-shadow:
+      inset 0 1px 2px rgba(0, 0, 0, 0.3),
+      inset 1px 0 1px rgba(0, 0, 0, 0.15);
+  }
+
+  .xp-btn-close {
+    background: linear-gradient(
+      180deg,
+      #e08a8a 0%,
+      #e36868 25%,
+      #d45050 50%,
+      #c75050 75%,
+      #b84545 100%
+    );
+    color: white;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+  }
+
+  .xp-btn-close:hover {
+    background: linear-gradient(
+      180deg,
+      #eca0a0 0%,
+      #f07878 25%,
+      #e86060 50%,
+      #d85858 75%,
+      #c84e4e 100%
+    );
+  }
+
+  .xp-btn-close:active {
+    background: linear-gradient(
+      180deg,
+      #b84545 0%,
+      #a83c3c 50%,
+      #983535 100%
+    );
+    box-shadow:
+      inset 0 1px 2px rgba(0, 0, 0, 0.3),
+      inset 1px 0 1px rgba(0, 0, 0, 0.15);
+  }
+
+  .xp-window-body {
+    flex: 1;
+    background: #fff;
+    box-shadow:
+      inset 1px 1px 2px rgba(0, 0, 0, 0.15),
+      inset -1px -1px 0 rgba(255, 255, 255, 0.5);
+    overflow: auto;
+    font-size: 12px;
+    color: #000;
+    font-family: 'Tahoma', 'Segoe UI', sans-serif;
   }
 </style>
