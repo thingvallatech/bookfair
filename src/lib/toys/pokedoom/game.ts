@@ -25,6 +25,8 @@ export interface GameState {
 	totalPokemon: number;
 	interrupt: string | null;
 	catchAttempt: CatchAttempt | null;
+	isMoving: boolean;
+	bobPhase: number;
 }
 
 // ---------- BadOS interrupt messages ----------
@@ -96,12 +98,21 @@ export class Game {
 	private interruptTimer = 0;
 	private catchAttempt: CatchAttempt | null = null;
 
+	// Walking bob
+	private bobPhase = 0;
+
 	// Input
 	private keys = new Set<string>();
 
 	// Loop
 	private animFrameId = 0;
 	private stateChangeCb: ((state: GameState) => void) | null = null;
+
+	/** True when any translation key (WASD/arrows for forward/back) is held — rotation-only doesn't count. */
+	private get isWalking(): boolean {
+		return this.keys.has('w') || this.keys.has('s') || this.keys.has('a') || this.keys.has('d')
+			|| this.keys.has('arrowup') || this.keys.has('arrowdown');
+	}
 
 	// ------------------------------------------------------------------
 	// Lifecycle
@@ -162,6 +173,7 @@ export class Game {
 		this.interrupt = null;
 		this.interruptTimer = 0;
 		this.catchAttempt = null;
+		this.bobPhase = 0;
 		this.keys.clear();
 
 		// Reassign Pokemon
@@ -311,6 +323,8 @@ export class Game {
 			totalPokemon: SPAWN_POINTS.length,
 			interrupt: this.interrupt,
 			catchAttempt: this.catchAttempt ? { ...this.catchAttempt } : null,
+			isMoving: this.isWalking && !this.interrupt,
+			bobPhase: this.bobPhase,
 		};
 	}
 
@@ -362,6 +376,14 @@ export class Game {
 		if (!this.interrupt) {
 			this.handleMovement();
 		}
+
+		// Walking bob phase
+		if (this.isWalking && !this.interrupt) {
+			this.bobPhase += 0.15;
+		}
+
+		// Per-frame state update for smooth bob animation
+		this.notifyStateChange();
 	}
 
 	private handleMovement(): void {
