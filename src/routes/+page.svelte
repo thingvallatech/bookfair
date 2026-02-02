@@ -281,7 +281,7 @@
           </button>
         </div>
 
-        <div class="shelf-items">
+        <div class="shelf-items" role="grid" aria-label="Toy shelf">
           {#each getCurrentPageItems() as obj, i}
             <button
               class="shelf-item nes-pointer"
@@ -312,7 +312,7 @@
       </div>
     </section>
 
-    <p class="hint nes-text is-disabled">
+    <p class="hint nes-text is-disabled" aria-live="polite">
       {#if activeObject}
         swipe down or press ESC to close
       {:else}
@@ -421,6 +421,7 @@
     min-height: 100vh;
     position: relative;
     overflow: hidden;
+    overflow-x: hidden;
   }
 
   .main-content {
@@ -717,10 +718,20 @@
   @media (max-width: 600px) {
     .main-content {
       padding: 1rem;
+      padding-top: calc(1rem + env(safe-area-inset-top, 0));
+    }
+
+    .site-header {
+      margin-bottom: 1rem;
     }
 
     .site-header h1 {
       font-size: 1.1rem;
+    }
+
+    .tagline {
+      max-width: 90vw;
+      padding: 0 0.5rem;
     }
 
     .shelf-container {
@@ -729,6 +740,30 @@
 
     .item-icon {
       font-size: 2rem;
+    }
+
+    .share-btn {
+      bottom: calc(12px + env(safe-area-inset-bottom, 0));
+      left: 12px;
+      padding: 10px 14px;
+      min-width: 44px;
+      min-height: 44px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .shelf-item {
+      animation: none;
+      opacity: 1;
+    }
+
+    .shelf-item:hover,
+    .shelf-item.focused {
+      transform: none;
+    }
+
+    .object-view {
+      animation: none;
     }
   }
 </style>

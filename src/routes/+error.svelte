@@ -4,7 +4,7 @@
 
 <div class="bsod">
   <div class="scanlines"></div>
-  <div class="content">
+  <div class="content" role="alert">
     <div class="header">
       <span class="title-bar">The Book Fair</span>
     </div>
@@ -126,6 +126,10 @@
     transition: color 0.2s;
   }
   .back-btn:hover { color: #ffff55; }
+  .back-btn:focus-visible {
+    outline: 2px solid #ffff55;
+    outline-offset: 4px;
+  }
   .cursor { animation: blink 1s step-end infinite; }
   @keyframes blink {
     0%, 100% { opacity: 1; }

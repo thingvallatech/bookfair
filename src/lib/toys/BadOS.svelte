@@ -65,11 +65,13 @@
   let recycleGaveUp = $state(false);
 
   function shuffleIcons() {
-    const maxX = Math.max(100, (typeof window !== 'undefined' ? window.innerWidth : 1024) - 80);
-    const maxY = Math.max(100, (typeof window !== 'undefined' ? window.innerHeight : 768) - 120);
+    const vw = typeof window !== 'undefined' ? window.innerWidth : 1024;
+    const vh = typeof window !== 'undefined' ? window.innerHeight : 768;
+    const maxX = Math.max(80, vw - 80);
+    const maxY = Math.max(80, vh - 120);
     for (const icon of icons) {
-      icon.x = 10 + Math.random() * (maxX - 10);
-      icon.y = 10 + Math.random() * (maxY - 10);
+      icon.x = 10 + Math.random() * Math.max(0, maxX - 10);
+      icon.y = 10 + Math.random() * Math.max(0, maxY - 10);
     }
   }
 
@@ -684,15 +686,20 @@
       bringToFront(id);
       return;
     }
-    const x = Math.max(20, (window.innerWidth - width) / 2 + (Math.random() - 0.5) * 80);
-    const y = Math.max(20, (window.innerHeight - height - 36) / 2 + (Math.random() - 0.5) * 60);
+    // Clamp window dimensions to viewport on small screens
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const clampedWidth = Math.min(width, vw - 16);
+    const clampedHeight = Math.min(height, vh - 52);
+    const x = Math.max(8, (vw - clampedWidth) / 2 + (Math.random() - 0.5) * Math.min(80, vw * 0.1));
+    const y = Math.max(8, (vh - clampedHeight - 36) / 2 + (Math.random() - 0.5) * Math.min(60, vh * 0.08));
     windows.push({
       id,
       title,
       x,
       y,
-      width,
-      height,
+      width: clampedWidth,
+      height: clampedHeight,
       zIndex: nextZ++,
       visible: true,
       content,
@@ -2900,5 +2907,71 @@
     height: 100%;
     overflow: hidden;
     background: #000;
+  }
+
+  /* ========================
+     MOBILE RESPONSIVENESS
+     ======================== */
+  @media (max-width: 600px) {
+    .xp-window {
+      max-width: calc(100vw - 16px) !important;
+      max-height: calc(100vh - 52px) !important;
+    }
+
+    .welcome-dialog {
+      width: calc(100vw - 24px);
+      max-width: 420px;
+    }
+
+    .welcome-body {
+      padding: 16px;
+      gap: 14px;
+    }
+
+    .error-dialog {
+      width: calc(100vw - 32px);
+      max-width: 300px;
+    }
+
+    .desktop-icon {
+      width: 64px;
+    }
+
+    .icon-emoji {
+      font-size: 28px;
+    }
+
+    .icon-label {
+      font-size: 10px;
+    }
+
+    .bsod-text {
+      font-size: 11px;
+      padding: 20px;
+      max-width: 100vw;
+      box-sizing: border-box;
+    }
+
+    .boot-title {
+      font-size: 24px;
+    }
+
+    .boot-flag {
+      font-size: 28px;
+    }
+
+    .start-menu {
+      width: calc(100vw - 16px);
+      max-width: 240px;
+    }
+
+    .start-submenu {
+      width: calc(100vw - 32px);
+      max-width: 200px;
+    }
+
+    .context-menu {
+      max-width: calc(100vw - 16px);
+    }
   }
 </style>

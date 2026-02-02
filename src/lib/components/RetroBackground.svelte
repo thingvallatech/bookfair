@@ -6,6 +6,11 @@
   let p5Instance: P5;
 
   onMount(async () => {
+    // Skip p5 animation entirely for users who prefer reduced motion
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+
     const p5Module = await import('p5');
     const p5 = p5Module.default;
 

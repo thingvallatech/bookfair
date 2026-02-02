@@ -586,19 +586,39 @@
   /* Mobile adjustments */
   @media (max-width: 600px) {
     .toolbar {
-      padding: 8px;
-      gap: 8px;
+      padding: 6px;
+      gap: 6px;
     }
 
     .tool-btn {
-      width: 44px;
-      height: 44px;
-      font-size: 18px;
+      width: 40px;
+      height: 40px;
+      font-size: 16px;
+    }
+
+    .canvas-container {
+      margin: 0 4px;
+    }
+
+    .color-palette {
+      flex-wrap: wrap;
+      max-width: 100%;
     }
 
     .color-btn {
-      width: 32px;
-      height: 32px;
+      width: 28px;
+      height: 28px;
+    }
+
+    .stamp-palette {
+      flex-wrap: wrap;
+      margin-left: 0;
+    }
+
+    .stamp-btn {
+      width: 36px;
+      height: 36px;
+      font-size: 16px;
     }
 
     .size-control {

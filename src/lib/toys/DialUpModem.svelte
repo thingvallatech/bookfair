@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { Howl } from 'howler';
   import CloseButton from '$lib/components/CloseButton.svelte';
   import { playSound } from '$lib/stores/audio';
   import HidingBeanie from '$lib/components/HidingBeanie.svelte';
@@ -27,7 +26,8 @@
   let ledRx = $state(false);
   let ledCarrier = $state(false);
 
-  let sound: Howl | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let sound: any = null;
   let connectionTimeout: ReturnType<typeof setTimeout>;
   let progressInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -40,21 +40,24 @@
     { time: 22000, label: 'Connected at 56.6 Kbps!', tx: false, rx: false, connected: true },
   ];
 
-  function startConnection() {
+  async function startConnection() {
     if (isConnecting || isConnected) return;
 
     isConnecting = true;
     progress = 0;
+
+    // Dynamically import Howl for dial-up sound
+    const { Howl } = await import('howler');
 
     // Create and play the dial-up sound from local file
     sound = new Howl({
       src: ['/sounds/dialup.mp3'],
       html5: true,
       volume: 0.7,
-      onloaderror: (id, err) => {
+      onloaderror: (id: number, err: unknown) => {
         console.warn('Dial-up sound failed to load:', err);
       },
-      onplayerror: (id, err) => {
+      onplayerror: (id: number, err: unknown) => {
         console.warn('Dial-up sound failed to play:', err);
         // Try to unlock and replay on mobile
         sound?.once('unlock', () => {

@@ -834,10 +834,17 @@
   @media (max-width: 500px) {
     .game-container {
       padding: 10px;
+      padding-bottom: calc(10px + env(safe-area-inset-bottom, 0));
     }
 
     .title {
       font-size: 1rem;
+    }
+
+    .controls-container {
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
     }
 
     .dpad-btn {
@@ -848,6 +855,14 @@
     .jump-btn {
       width: 70px;
       height: 56px;
+    }
+
+    .overlay-content h2 {
+      font-size: 1rem;
+    }
+
+    .instruction {
+      font-size: 0.45rem;
     }
   }
 </style>

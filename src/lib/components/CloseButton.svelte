@@ -56,6 +56,11 @@
     transform: scale(0.95);
   }
 
+  .close-button:focus-visible {
+    outline: 2px solid #f7d51d;
+    outline-offset: 2px;
+  }
+
   .close-button.light {
     background: rgba(255, 255, 255, 0.9);
     border-color: rgba(0, 0, 0, 0.2);

@@ -167,4 +167,10 @@
     padding: 8px 12px;
     background: linear-gradient(180deg, #fff 0%, #dfe6e9 100%);
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    .prompt-box {
+      animation: none;
+    }
+  }
 </style>

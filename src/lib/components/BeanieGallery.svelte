@@ -38,7 +38,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="gallery-overlay" role="dialog" aria-label="Beanie Baby Collection">
+<div class="gallery-overlay" role="dialog" aria-modal="true" aria-label="Beanie Baby Collection">
   <div class="gallery-inner">
     <CloseButton {onClose} />
     <div class="gallery-header">
@@ -65,7 +65,7 @@
             <div class="beanie-grid">
               {#each beanies as beanie}
                 {@const isFound = discovered.has(beanie.name)}
-                <div class="beanie-card" class:discovered={isFound} style="--rc: {RARITY_COLORS[beanie.rarity]}">
+                <div class="beanie-card" class:discovered={isFound} style="--rc: {RARITY_COLORS[beanie.rarity]}" aria-label={isFound ? beanie.name : 'Undiscovered beanie'}>
                   <div class="img-wrap">
                     <img src={beanie.image} alt={isFound ? beanie.name : 'Unknown beanie'} class="beanie-img" class:silhouette={!isFound} />
                   </div>
@@ -150,11 +150,28 @@
   .beanie-animal { font-size: 0.6rem; color: #888; text-align: center; }
 
   @media (max-width: 500px) {
-    .gallery-header { padding: 1rem 3rem 0.75rem; }
-    .gallery-title { font-size: 0.65rem; }
-    .gallery-scroll { padding: 0.75rem 1rem 1rem; }
-    .beanie-grid { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 0.5rem; }
-    .img-wrap { width: 48px; height: 48px; }
+    .gallery-overlay { padding: 0.5rem; }
+    .gallery-inner { max-height: 95vh; }
+    .gallery-header { padding: 1rem 1rem 0.75rem; padding-top: calc(1rem + 40px); }
+    .gallery-title { font-size: 0.6rem; word-break: break-word; }
+    .gallery-scroll { padding: 0.75rem 0.75rem 1rem; -webkit-overflow-scrolling: touch; }
+    .beanie-grid { grid-template-columns: repeat(auto-fill, minmax(75px, 1fr)); gap: 0.5rem; }
+    .img-wrap { width: 44px; height: 44px; }
     .beanie-name { font-size: 0.35rem; }
+    .beanie-card { padding: 0.5rem 0.3rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .gallery-overlay {
+      animation: none;
+    }
+
+    .beanie-card {
+      transition: none;
+    }
+
+    .progress-fill {
+      transition: none;
+    }
   }
 </style>
