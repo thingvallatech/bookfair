@@ -5,8 +5,9 @@
   import LoadingState from '$lib/components/LoadingState.svelte';
   import HidingBeanie from '$lib/components/HidingBeanie.svelte';
   import { playSound } from '$lib/stores/audio';
-  import { initializeHunt, registerSpots, getBeaniesForArea, type HidingSpot } from '$lib/stores/beanieHunt';
+  import { initializeHunt, registerSpots, getBeaniesForArea, getDiscoveryStats, type HidingSpot } from '$lib/stores/beanieHunt';
   import type { Beanie } from '$lib/stores/beanies';
+  import BeanieGallery from '$lib/components/BeanieGallery.svelte';
   import DialUpModem from '$lib/toys/DialUpModem.svelte';
   import KooshBall from '$lib/toys/KooshBall.svelte';
   import KidPix from '$lib/toys/KidPix.svelte';
@@ -30,6 +31,8 @@
   let activeObject = $state<string | null>(null);
   let isLoading = $state(false);
   let focusedIndex = $state(0);
+  let showGallery = $state(false);
+  let discoveryStats = $state({ discovered: 0, total: 39 });
 
   // Shelf objects
   const shelfObjects = [
@@ -91,6 +94,20 @@
     if (browser) {
       history.pushState({}, '', '/');
     }
+  }
+
+  let shareTooltip = $state('\u{1F517}');
+
+  function copyShareLink() {
+    const url = `${window.location.origin}/#${activeObject}`;
+    navigator.clipboard.writeText(url).then(() => {
+      shareTooltip = '\u2713 Copied!';
+      playSound('success');
+      setTimeout(() => { shareTooltip = '\u{1F517}'; }, 2000);
+    }).catch(() => {
+      shareTooltip = '\u2717 Failed';
+      setTimeout(() => { shareTooltip = '\u{1F517}'; }, 2000);
+    });
   }
 
   function nextPage() {
@@ -198,6 +215,7 @@
     registerSpots('shelf', shelfHidingSpots);
     const beanies = getBeaniesForArea('shelf');
     shelfBeanie = beanies.get('behind-wood') || null;
+    discoveryStats = getDiscoveryStats();
 
     // Check for hash on load
     if (browser && window.location.hash) {
@@ -229,6 +247,9 @@
       <h1 class="nes-text is-warning">The Book Fair</h1>
       <p class="subtitle">at the end of the internet</p>
       <p class="tagline">18 interactive toys from the Scholastic shelf of your childhood. Click one, lose an hour.</p>
+      <button class="collection-btn" onclick={() => { playSound('collect', 0.3); showGallery = true; }}>
+        🎒 {discoveryStats.discovered}/{discoveryStats.total}
+      </button>
     </header>
 
     <!-- The Shelf - with beanie hiding behind wood plank -->
@@ -268,6 +289,7 @@
               onclick={() => openObject(obj.id)}
               title={obj.desc}
               tabindex={focusedIndex === i ? 0 : -1}
+              style="animation-delay: {i * 0.08}s"
             >
               <div class="item-icon">{obj.icon}</div>
               <span class="item-label">{obj.name}</span>
@@ -380,6 +402,20 @@
   </div>
 {/if}
 
+{#if activeObject}
+  <button
+    class="share-btn"
+    onclick={copyShareLink}
+    title="Copy link to this toy"
+  >
+    {shareTooltip}
+  </button>
+{/if}
+
+{#if showGallery}
+  <BeanieGallery onClose={() => { showGallery = false; discoveryStats = getDiscoveryStats(); }} />
+{/if}
+
 <style>
   .crt-container {
     min-height: 100vh;
@@ -425,6 +461,33 @@
     max-width: 400px;
     margin: 0.5rem auto 0;
     text-align: center;
+  }
+
+  .collection-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.6rem;
+    padding: 0.3rem 0.7rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 2px solid #555;
+    border-radius: 6px;
+    color: #ccc;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.4rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .collection-btn:hover {
+    border-color: #f7d51d;
+    color: #f7d51d;
+    background: rgba(247, 213, 29, 0.1);
+    transform: scale(1.05);
+  }
+
+  .collection-btn:active {
+    transform: scale(0.97);
   }
 
   .shelf-section {
@@ -512,6 +575,19 @@
     padding: 1rem 0.5rem;
     transition: all 0.2s ease-out;
     position: relative;
+    opacity: 0;
+    animation: shelfItemEnter 0.4s ease-out forwards;
+  }
+
+  @keyframes shelfItemEnter {
+    0% {
+      opacity: 0;
+      transform: translateY(20px) scale(0.9);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
   }
 
   .shelf-item:hover,
@@ -613,6 +689,29 @@
   @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
+  }
+
+  .share-btn {
+    position: fixed;
+    bottom: 16px;
+    left: 16px;
+    z-index: 600;
+    background: rgba(33, 37, 41, 0.9);
+    border: 2px solid #555;
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: 'Press Start 2P', monospace;
+    transition: all 0.2s;
+    min-width: 40px;
+    text-align: center;
+  }
+
+  .share-btn:hover {
+    border-color: #f7d51d;
+    background: rgba(33, 37, 41, 1);
   }
 
   @media (max-width: 600px) {
