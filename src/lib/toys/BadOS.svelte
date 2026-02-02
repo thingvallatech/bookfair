@@ -62,13 +62,13 @@
     setTimeout(() => {
       switch (id) {
         case 'computer':
-          openWindow('computer', 'My Computer', 'empty');
+          openWindow('progress', 'Installing Updates...', 'progress', 420, 180);
           break;
         case 'ie':
           openWindow('ie', 'Internet Explorer', 'ie');
           break;
         case 'virus':
-          openWindow('virus', 'Error', 'empty');
+          spawnError();
           break;
         case 'homework':
           openWindow('homework', 'homework (real).pdf', 'homework');
@@ -228,6 +228,126 @@
   }
 
   // ========================
+  // ERROR HYDRA (Gag 8)
+  // ========================
+  const ERROR_MESSAGES = [
+    'Error: Success has failed successfully.',
+    'Warning: This warning is a warning.',
+    'Fatal error: Not enough errors found.',
+    'Error 404: Error message not found.',
+    'Warning: Your computer has too many warnings.',
+    'Error: Task failed successfully.',
+    'Critical: Everything is fine. (This is not fine.)',
+    'Error: An error occurred while displaying the previous error.',
+    'Warning: Shutting down... just kidding.',
+    'Error: Keyboard not found. Press F1 to continue.',
+    'Fatal: The operation completed. Somehow.',
+    'Error: The file is too happy to be opened.',
+  ];
+
+  interface ErrorDialog {
+    id: number;
+    msg: string;
+    x: number;
+    y: number;
+  }
+
+  let errors = $state<ErrorDialog[]>([]);
+  let errorIdCounter = $state(0);
+  let bsodFlash = $state(false);
+
+  function spawnError() {
+    const cx = (typeof window !== 'undefined' ? window.innerWidth : 1024) / 2;
+    const cy = (typeof window !== 'undefined' ? window.innerHeight : 768) / 2;
+    const x = cx - 150 + (Math.random() - 0.5) * 100;
+    const y = cy - 60 + (Math.random() - 0.5) * 100;
+    const msg = ERROR_MESSAGES[Math.floor(Math.random() * ERROR_MESSAGES.length)];
+    errors.push({ id: errorIdCounter++, msg, x, y });
+    playSound('error', 0.3);
+  }
+
+  function closeError(id: number) {
+    const idx = errors.findIndex(e => e.id === id);
+    if (idx === -1) return;
+
+    if (errors.length >= 8) {
+      // Trigger BSOD flash then clear all
+      bsodFlash = true;
+      playSound('death', 0.4);
+      setTimeout(() => {
+        bsodFlash = false;
+        errors = [];
+      }, 400);
+    } else {
+      errors.splice(idx, 1);
+      // Spawn 2 more
+      setTimeout(() => spawnError(), 50);
+      setTimeout(() => spawnError(), 150);
+    }
+  }
+
+  // ========================
+  // QUANTUM PROGRESS BAR (Gag 9)
+  // ========================
+  let progressValue = $state(0);
+  let isWatchingProgress = $state(false);
+  let progressComplete = $state(false);
+  let watchingMsgIndex = $state(0);
+  let watchingMsgTimer = $state(0);
+
+  const WATCHING_MESSAGES = [
+    'Stop watching me.',
+    "I can't perform under pressure.",
+    'Please look away.',
+    'This is your fault.',
+  ];
+
+  $effect(() => {
+    if (!progressComplete) {
+      const interval = setInterval(() => {
+        if (isWatchingProgress) {
+          progressValue = Math.max(0, progressValue - 1);
+          watchingMsgTimer++;
+          if (watchingMsgTimer >= 20) {
+            // 20 * 100ms = 2s
+            watchingMsgTimer = 0;
+            watchingMsgIndex = (watchingMsgIndex + 1) % WATCHING_MESSAGES.length;
+          }
+        } else {
+          progressValue = Math.min(100, progressValue + 0.5);
+        }
+        if (progressValue >= 100) {
+          progressComplete = true;
+        }
+      }, 100);
+      return () => clearInterval(interval);
+    }
+  });
+
+  // ========================
+  // REVERSE VOLUME SLIDER (Gag 2)
+  // ========================
+  let volumeValue = $state(50);
+  let volumeOpen = $state(false);
+
+  function handleVolumeChange(e: Event) {
+    const target = e.target as HTMLInputElement;
+    const rawVal = parseInt(target.value);
+    volumeValue = rawVal;
+    // Play sound: display value is 100 - rawVal, so volume is proportional to display
+    // Display high = quiet, display low = loud => invert for playSound
+    const displayVal = 100 - rawVal;
+    playSound('ding', displayVal / 200);
+  }
+
+  function handleVolumeClickOutside(e: MouseEvent) {
+    const target = e.target as HTMLElement;
+    if (!target.closest('.volume-popup') && !target.closest('.volume-btn')) {
+      volumeOpen = false;
+    }
+  }
+
+  // ========================
   // XP WINDOW SYSTEM
   // ========================
   interface XPWindow {
@@ -373,7 +493,8 @@
   });
 </script>
 
-<svelte:window onmousemove={handleMouseMove} onmouseup={endDrag} />
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<svelte:window onmousemove={handleMouseMove} onmouseup={endDrag} onclick={handleVolumeClickOutside} />
 
 <div
   class="bados-desktop"
@@ -431,9 +552,11 @@
         class="xp-window"
         style="left: {win.x}px; top: {win.y}px; width: {win.id === 'notepad' ? `calc(${win.width}px + ${notepadTitleStretch * 100}px)` : `${win.width}px`}; height: {win.height}px; z-index: {win.zIndex}"
         onmousedown={() => bringToFront(win.id)}
+        onmouseenter={win.content === 'progress' ? () => { isWatchingProgress = true; } : undefined}
+        onmouseleave={win.content === 'progress' ? () => { isWatchingProgress = false; } : undefined}
         role="dialog"
         tabindex="-1"
-        aria-label={win.title}
+        aria-label={win.content === 'progress' && progressComplete ? 'Update complete!' : win.title}
       >
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div
@@ -442,7 +565,7 @@
           onmousemove={win.id === 'notepad' ? handleNotepadTitlebarMove : undefined}
           onmouseleave={win.id === 'notepad' ? handleNotepadTitlebarLeave : undefined}
         >
-          <span class="xp-title-text">{win.sulking ? win.title + ' ...fine.' : win.title}</span>
+          <span class="xp-title-text">{win.content === 'progress' && progressComplete ? 'Update complete!' : win.sulking ? win.title + ' ...fine.' : win.title}</span>
           <div class="xp-titlebar-buttons">
             <button class="xp-btn xp-btn-minimize" aria-label="Minimize">_</button>
             <button class="xp-btn xp-btn-maximize" aria-label="Maximize">□</button>
@@ -482,6 +605,26 @@
                 spellcheck="false"
               ></textarea>
             </div>
+          {:else if win.content === 'progress'}
+            <div class="progress-container">
+              <div class="progress-track">
+                <div
+                  class="progress-fill"
+                  class:progress-complete={progressComplete}
+                  style="width: {progressValue}%"
+                ></div>
+              </div>
+              <div class="progress-pct">{Math.round(progressValue)}%</div>
+              <div class="progress-status">
+                {#if progressComplete}
+                  Just kidding. Updates will restart in 5 seconds.
+                {:else if isWatchingProgress}
+                  {WATCHING_MESSAGES[watchingMsgIndex]}
+                {:else}
+                  Installing update 1 of 347...
+                {/if}
+              </div>
+            </div>
           {/if}
         </div>
       </div>
@@ -518,6 +661,41 @@
     </div>
   {/if}
 
+  <!-- Error Hydra dialogs -->
+  {#each errors as err, i (err.id)}
+    <div
+      class="error-dialog"
+      style="left: {err.x}px; top: {err.y}px; z-index: {200 + i}"
+      role="alertdialog"
+      aria-label="Error"
+    >
+      <div class="error-titlebar">
+        <span class="error-title-text">{err.msg.startsWith('Warning') ? 'Warning' : 'Error'}</span>
+        <button class="xp-btn xp-btn-close" onclick={() => closeError(err.id)} aria-label="Close">×</button>
+      </div>
+      <div class="error-body">
+        <div class="error-content">
+          <span class="error-icon">⚠️</span>
+          <span class="error-msg">{err.msg}</span>
+        </div>
+        <div class="error-buttons">
+          <button class="error-ok-btn" onclick={() => closeError(err.id)}>OK</button>
+        </div>
+      </div>
+    </div>
+  {/each}
+
+  <!-- BSOD Flash -->
+  {#if bsodFlash}
+    <div class="bsod-overlay">
+      <div class="bsod-text">
+        <p>A problem has been detected and BadOS has been shut down to prevent damage to your computer.</p>
+        <p>IRQL_NOT_LESS_OR_EQUAL</p>
+        <p>*** STOP: 0x0000000A (0x00000000, 0x00000002, 0x00000000, 0x804E3B2C)</p>
+      </div>
+    </div>
+  {/if}
+
   <!-- Close button -->
   <CloseButton onClose={onClose} variant="light" />
 
@@ -531,6 +709,25 @@
     <div class="taskbar-middle"></div>
 
     <div class="system-tray">
+      <div class="volume-wrapper">
+        <button class="volume-btn" onclick={() => { volumeOpen = !volumeOpen; }} aria-label="Volume">
+          🔊
+        </button>
+        {#if volumeOpen}
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div class="volume-popup" onclick={(e) => e.stopPropagation()} onkeydown={() => {}}>
+            <div class="volume-display">{100 - volumeValue}</div>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={volumeValue}
+              class="volume-slider"
+              oninput={handleVolumeChange}
+            />
+          </div>
+        {/if}
+      </div>
       <span class="tray-clock">{clockTime}</span>
     </div>
   </div>
@@ -1389,5 +1586,342 @@
 
   .xp-btn-tiny:hover {
     width: 6px !important;
+  }
+
+  /* ========================
+     ERROR HYDRA DIALOGS
+     ======================== */
+  .error-dialog {
+    position: fixed;
+    width: 300px;
+    border-radius: 8px 8px 0 0;
+    border: 1px solid #0054e3;
+    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+    animation: error-appear 0.2s ease-out;
+    font-family: 'Tahoma', 'Segoe UI', sans-serif;
+  }
+
+  @keyframes error-appear {
+    0% { transform: scale(0.6); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .error-titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 26px;
+    min-height: 26px;
+    padding: 0 4px 0 8px;
+    background: linear-gradient(
+      180deg,
+      #0058e6 0%,
+      #1a6ff5 20%,
+      #3a8cf4 50%,
+      #1a6ff5 80%,
+      #0058e6 100%
+    );
+    border-radius: 8px 8px 0 0;
+  }
+
+  .error-title-text {
+    font-size: 11px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.4);
+    flex: 1;
+  }
+
+  .error-body {
+    background: #ece9d8;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .error-content {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .error-icon {
+    font-size: 28px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .error-msg {
+    font-size: 11px;
+    color: #000;
+    line-height: 1.4;
+  }
+
+  .error-buttons {
+    display: flex;
+    justify-content: center;
+  }
+
+  .error-ok-btn {
+    min-width: 75px;
+    height: 24px;
+    padding: 0 16px;
+    border: 1px solid #003c74;
+    border-radius: 3px;
+    font-size: 11px;
+    font-family: 'Tahoma', 'Segoe UI', sans-serif;
+    cursor: pointer;
+    background: linear-gradient(
+      180deg,
+      #fff 0%,
+      #f0f0ea 40%,
+      #e4e0d8 70%,
+      #d6d2c6 100%
+    );
+    color: #000;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.8),
+      0 1px 2px rgba(0, 0, 0, 0.15);
+  }
+
+  .error-ok-btn:hover {
+    background: linear-gradient(
+      180deg,
+      #fff 0%,
+      #f5f5f0 40%,
+      #ebe8e0 70%,
+      #e0dcd4 100%
+    );
+    border-color: #0055cc;
+  }
+
+  .error-ok-btn:active {
+    background: linear-gradient(
+      180deg,
+      #d6d2c6 0%,
+      #e0dcd4 50%,
+      #d6d2c6 100%
+    );
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+  }
+
+  /* ========================
+     BSOD FLASH
+     ======================== */
+  .bsod-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: #0000aa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: bsod-flash 0.4s ease-out forwards;
+  }
+
+  @keyframes bsod-flash {
+    0% { opacity: 1; }
+    70% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  .bsod-text {
+    color: white;
+    font-family: 'Lucida Console', 'Courier New', monospace;
+    font-size: 14px;
+    max-width: 600px;
+    text-align: left;
+    line-height: 1.6;
+    padding: 40px;
+  }
+
+  .bsod-text p {
+    margin: 0 0 12px 0;
+  }
+
+  /* ========================
+     QUANTUM PROGRESS BAR
+     ======================== */
+  .progress-container {
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    height: 100%;
+    box-sizing: border-box;
+  }
+
+  .progress-track {
+    width: 100%;
+    height: 20px;
+    background: #fff;
+    border: 1px solid #888;
+    box-shadow:
+      inset 1px 1px 2px rgba(0, 0, 0, 0.2),
+      inset -1px -1px 0 rgba(255, 255, 255, 0.5);
+    border-radius: 1px;
+    overflow: hidden;
+    padding: 2px;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: repeating-linear-gradient(
+      90deg,
+      #3169c6 0px,
+      #3169c6 8px,
+      #4a8cf5 8px,
+      #4a8cf5 9px,
+      #3169c6 9px,
+      #3169c6 10px
+    );
+    background-size: 10px 100%;
+    border-radius: 1px;
+    transition: width 0.1s linear;
+  }
+
+  .progress-fill.progress-complete {
+    background: repeating-linear-gradient(
+      90deg,
+      #3a9634 0px,
+      #3a9634 8px,
+      #4cbf45 8px,
+      #4cbf45 9px,
+      #3a9634 9px,
+      #3a9634 10px
+    );
+  }
+
+  .progress-pct {
+    font-size: 11px;
+    color: #333;
+    text-align: center;
+    font-family: 'Tahoma', 'Segoe UI', sans-serif;
+  }
+
+  .progress-status {
+    font-size: 11px;
+    color: #666;
+    text-align: center;
+    font-family: 'Tahoma', 'Segoe UI', sans-serif;
+    min-height: 16px;
+  }
+
+  /* ========================
+     REVERSE VOLUME SLIDER
+     ======================== */
+  .volume-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .volume-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 2px 4px;
+    border-radius: 3px;
+    color: white;
+  }
+
+  .volume-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  .volume-popup {
+    position: absolute;
+    bottom: 36px;
+    right: -10px;
+    width: 120px;
+    background: #ece9d8;
+    border: 1px solid #888;
+    border-radius: 3px;
+    box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.3);
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    z-index: 300;
+    animation: volume-appear 0.15s ease-out;
+  }
+
+  @keyframes volume-appear {
+    0% { transform: translateY(4px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+
+  .volume-display {
+    font-size: 14px;
+    font-weight: bold;
+    color: #333;
+    font-family: 'Tahoma', 'Segoe UI', sans-serif;
+  }
+
+  .volume-slider {
+    width: 100%;
+    height: 18px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+    direction: rtl;
+  }
+
+  .volume-slider::-webkit-slider-track {
+    height: 6px;
+    background: #fff;
+    border: 1px solid #888;
+    border-radius: 2px;
+    box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.15);
+  }
+
+  .volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 18px;
+    background: linear-gradient(
+      180deg,
+      #f0f0ea 0%,
+      #e4e0d8 40%,
+      #d6d2c6 100%
+    );
+    border: 1px solid #888;
+    border-radius: 2px;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.8),
+      0 1px 2px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    margin-top: -6px;
+  }
+
+  .volume-slider::-moz-range-track {
+    height: 6px;
+    background: #fff;
+    border: 1px solid #888;
+    border-radius: 2px;
+    box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.15);
+  }
+
+  .volume-slider::-moz-range-thumb {
+    width: 12px;
+    height: 18px;
+    background: linear-gradient(
+      180deg,
+      #f0f0ea 0%,
+      #e4e0d8 40%,
+      #d6d2c6 100%
+    );
+    border: 1px solid #888;
+    border-radius: 2px;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.8),
+      0 1px 2px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
   }
 </style>
