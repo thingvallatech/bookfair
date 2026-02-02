@@ -3,6 +3,7 @@
   import { Game, type GamePhase, type GameState, type CatchAttempt } from './game.js';
   import { getSpriteUrl } from './pokemon.js';
   import { playSound } from '$lib/stores/audio';
+  import ToyLoader from '$lib/components/ToyLoader.svelte';
 
   // ---------- Game state (reactive) ----------
 
@@ -223,8 +224,8 @@
   <!-- ========== LOADING SCREEN ========== -->
   {#if phase === 'loading'}
     <div class="overlay loading-overlay">
-      <div class="loading-content">
-        <div class="loading-text">Loading PokeDOOM.exe...</div>
+      <ToyLoader toy="pokedoom" />
+      <div class="loading-progress-wrap">
         <div class="loading-bar-track">
           <div
             class="loading-bar-fill"
@@ -459,22 +460,20 @@
   .loading-overlay {
     background: #000;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     pointer-events: all;
     z-index: 50;
   }
 
-  .loading-content {
+  .loading-progress-wrap {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
     text-align: center;
-    padding: 20px;
-  }
-
-  .loading-text {
-    color: #33ff33;
-    font-size: 16px;
-    margin-bottom: 16px;
-    font-family: 'Courier New', monospace;
+    z-index: 101;
   }
 
   .loading-bar-track {
@@ -494,7 +493,7 @@
   .loading-tip {
     color: #669966;
     font-size: 11px;
-    font-family: 'Courier New', monospace;
+    font-family: 'Press Start 2P', 'Courier New', monospace;
   }
 
   /* ========== TITLE SCREEN ========== */

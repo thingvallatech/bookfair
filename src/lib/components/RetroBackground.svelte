@@ -4,10 +4,12 @@
 
   let container: HTMLDivElement;
   let p5Instance: P5;
+  let ready = $state(false);
 
   onMount(async () => {
     // Skip p5 animation entirely for users who prefer reduced motion
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      ready = true;
       return;
     }
 
@@ -134,6 +136,7 @@
     };
 
     p5Instance = new p5(sketch, container);
+    ready = true;
   });
 
   onDestroy(() => {
@@ -143,9 +146,51 @@
   });
 </script>
 
+{#if !ready}
+  <div class="retro-bg-placeholder"></div>
+{/if}
 <div bind:this={container} class="retro-bg"></div>
 
 <style>
+  .retro-bg-placeholder {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      180deg,
+      hsl(240, 40%, 8%) 0%,
+      hsl(260, 35%, 5%) 100%
+    );
+    animation: placeholderPulse 2s ease-in-out infinite;
+  }
+
+  .retro-bg-placeholder::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,0.3), transparent),
+      radial-gradient(1px 1px at 40% 70%, rgba(255,255,255,0.2), transparent),
+      radial-gradient(1px 1px at 60% 20%, rgba(255,255,255,0.4), transparent),
+      radial-gradient(1px 1px at 80% 50%, rgba(255,255,255,0.2), transparent),
+      radial-gradient(1px 1px at 10% 80%, rgba(255,255,255,0.3), transparent),
+      radial-gradient(1px 1px at 70% 90%, rgba(255,255,255,0.2), transparent),
+      radial-gradient(1px 1px at 50% 10%, rgba(255,255,255,0.3), transparent),
+      radial-gradient(1px 1px at 90% 40%, rgba(255,255,255,0.2), transparent);
+    animation: twinkle 3s ease-in-out infinite alternate;
+  }
+
+  @keyframes placeholderPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.95; }
+  }
+
+  @keyframes twinkle {
+    0% { opacity: 0.5; }
+    100% { opacity: 1; }
+  }
+
   .retro-bg {
     position: fixed;
     inset: 0;

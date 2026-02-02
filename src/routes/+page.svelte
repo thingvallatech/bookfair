@@ -3,6 +3,7 @@
   import { browser } from '$app/environment';
   import RetroBackground from '$lib/components/RetroBackground.svelte';
   import LoadingState from '$lib/components/LoadingState.svelte';
+  import ToyLoader from '$lib/components/ToyLoader.svelte';
   import HidingBeanie from '$lib/components/HidingBeanie.svelte';
   import { playSound } from '$lib/stores/audio';
   import { initializeHunt, registerSpots, getBeaniesForArea, getDiscoveryStats, type HidingSpot } from '$lib/stores/beanieHunt';
@@ -30,6 +31,13 @@
   // Which object is currently "open" (fullscreen experience)
   let activeObject = $state<string | null>(null);
   let isLoading = $state(false);
+  let loadingToy = $state<string | null>(null);
+
+  // Heavy toys that benefit from themed loading states
+  const heavyToys: Record<string, string> = {
+    bados: 'bados',
+    winamp: 'winamp',
+  };
   let focusedIndex = $state(0);
   let showGallery = $state(false);
   let discoveryStats = $state({ discovered: 0, total: 39 });
@@ -78,10 +86,12 @@
   function openObject(id: string) {
     playSound('click');
     isLoading = true;
+    loadingToy = heavyToys[id] || null;
 
     setTimeout(() => {
       activeObject = id;
       isLoading = false;
+      loadingToy = null;
       if (browser) {
         history.pushState({ object: id }, '', `#${id}`);
       }
@@ -319,13 +329,45 @@
         click an object to explore · use arrow keys to navigate
       {/if}
     </p>
+
+    {#if !activeObject}
+      <footer class="retro-footer">
+        <div class="footer-separator"></div>
+        <div class="footer-content">
+          <div class="footer-row">
+            <span class="footer-credit">
+              Built by <a href="https://github.com/sean" target="_blank" rel="noopener noreferrer">Sean</a>
+            </span>
+            <span class="footer-divider">|</span>
+            <a href="https://github.com/sean/fun" target="_blank" rel="noopener noreferrer" class="footer-link">
+              View Source
+            </a>
+          </div>
+          <div class="footer-badges">
+            <span class="tech-badge">SvelteKit</span>
+            <span class="tech-badge">TypeScript</span>
+            <span class="tech-badge">Howler.js</span>
+            <span class="tech-badge">Three.js</span>
+            <span class="tech-badge">p5.js</span>
+          </div>
+          <p class="footer-flavor">Best viewed in Netscape Navigator 4.0 at 800x600</p>
+          <p class="footer-flavor">You are visitor #<span class="visitor-count">{Math.floor(Math.random() * 99000) + 1000}</span> since 1997</p>
+        </div>
+      </footer>
+    {/if}
   </main>
 </div>
 
 {#if isLoading}
-  <div class="loading-overlay">
-    <LoadingState message="Loading..." />
-  </div>
+  {#if loadingToy}
+    <div class="loading-overlay">
+      <ToyLoader toy={loadingToy} />
+    </div>
+  {:else}
+    <div class="loading-overlay">
+      <LoadingState message="Loading..." />
+    </div>
+  {/if}
 {/if}
 
 {#if activeObject === 'modem'}
@@ -764,6 +806,101 @@
 
     .object-view {
       animation: none;
+    }
+  }
+
+  /* Retro Footer */
+  .retro-footer {
+    width: 100%;
+    max-width: 700px;
+    margin-top: 2rem;
+    padding-bottom: 1rem;
+  }
+
+  .footer-separator {
+    height: 2px;
+    background: linear-gradient(90deg, transparent 0%, #555 20%, #666 50%, #555 80%, transparent 100%);
+    margin-bottom: 1.2rem;
+  }
+
+  .footer-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .footer-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.4rem;
+    color: #666;
+  }
+
+  .footer-credit a,
+  .footer-link {
+    color: #888;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .footer-credit a:hover,
+  .footer-link:hover {
+    color: #f7d51d;
+    text-decoration: underline;
+  }
+
+  .footer-divider {
+    color: #444;
+    user-select: none;
+  }
+
+  .footer-badges {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.4rem;
+  }
+
+  .tech-badge {
+    font-size: 0.35rem;
+    color: #777;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid #444;
+    padding: 0.15rem 0.4rem;
+    border-radius: 2px;
+    letter-spacing: 0.5px;
+  }
+
+  .footer-flavor {
+    font-size: 0.35rem;
+    color: #555;
+    text-align: center;
+    margin: 0;
+    font-style: italic;
+  }
+
+  .visitor-count {
+    color: #47a847;
+  }
+
+  @media (max-width: 600px) {
+    .retro-footer {
+      margin-top: 1.5rem;
+      padding: 0 0.5rem 1rem;
+    }
+
+    .footer-row {
+      font-size: 0.35rem;
+    }
+
+    .tech-badge {
+      font-size: 0.3rem;
+    }
+
+    .footer-flavor {
+      font-size: 0.3rem;
     }
   }
 </style>
