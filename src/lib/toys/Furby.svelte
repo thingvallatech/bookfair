@@ -40,6 +40,54 @@
   let rapidClickCount = $state(0);
   let rapidClickTimer = $state<ReturnType<typeof setTimeout> | null>(null);
 
+  // Voice synthesis
+  let voiceReady = $state(false);
+  let selectedVoice: SpeechSynthesisVoice | null = null;
+
+  function initVoice() {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    const pickVoice = () => {
+      const voices = speechSynthesis.getVoices();
+      // Prefer a higher-pitched or novelty voice
+      selectedVoice =
+        voices.find(v => /zira|samantha|karen|fiona|tessa/i.test(v.name)) ||
+        voices.find(v => v.lang.startsWith('en') && /female/i.test(v.name)) ||
+        voices.find(v => v.lang.startsWith('en')) ||
+        voices[0] || null;
+      voiceReady = voices.length > 0;
+    };
+    pickVoice();
+    if (!voiceReady) {
+      speechSynthesis.onvoiceschanged = pickVoice;
+    }
+  }
+
+  function speakText(text: string, isFurbish: boolean) {
+    if (!voiceReady || typeof window === 'undefined' || !window.speechSynthesis) return;
+    // Don't speak if audio is disabled
+    if (localStorage.getItem('audioEnabled') !== 'true') return;
+
+    // Cancel any ongoing speech
+    speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    if (selectedVoice) utterance.voice = selectedVoice;
+
+    if (isFurbish) {
+      // Furbish: high pitch, fast, robotic
+      utterance.pitch = 1.8;
+      utterance.rate = 1.3;
+      utterance.volume = 0.7;
+    } else {
+      // English: still cute but more understandable
+      utterance.pitch = 1.5;
+      utterance.rate = 1.1;
+      utterance.volume = 0.7;
+    }
+
+    speechSynthesis.speak(utterance);
+  }
+
   // Animation frame
   let animFrame = $state(0);
   let animInterval: ReturnType<typeof setInterval>;
@@ -180,6 +228,10 @@
     speechText = phrase.display;
     speechTranslation = phrase.translation;
     showSpeech = true;
+
+    // Speak the text aloud
+    const isFurbish = phrase.translation !== '';
+    speakText(phrase.display, isFurbish);
 
     if (speechTimeout) clearTimeout(speechTimeout);
     speechTimeout = setTimeout(() => {
@@ -411,6 +463,7 @@
 
   onMount(() => {
     loadState();
+    initVoice();
 
     // Register beanie spot
     registerSpots('furby', hidingSpots);
@@ -434,6 +487,10 @@
     if (speechTimeout) clearTimeout(speechTimeout);
     if (moodTimeout) clearTimeout(moodTimeout);
     if (rapidClickTimer) clearTimeout(rapidClickTimer);
+    // Stop any ongoing speech when leaving
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      speechSynthesis.cancel();
+    }
   });
 </script>
 
