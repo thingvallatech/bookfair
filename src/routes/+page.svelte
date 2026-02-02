@@ -5,6 +5,7 @@
   import LoadingState from '$lib/components/LoadingState.svelte';
   import ToyLoader from '$lib/components/ToyLoader.svelte';
   import HidingBeanie from '$lib/components/HidingBeanie.svelte';
+  import CRTBoot from '$lib/components/CRTBoot.svelte';
   import { playSound } from '$lib/stores/audio';
   import { initializeHunt, registerSpots, getBeaniesForArea, getDiscoveryStats, type HidingSpot } from '$lib/stores/beanieHunt';
   import type { Beanie } from '$lib/stores/beanies';
@@ -27,6 +28,9 @@
   import MASH from '$lib/toys/MASH.svelte';
   import CootieCatcher from '$lib/toys/CootieCatcher.svelte';
   import BadOS from '$lib/toys/BadOS.svelte';
+
+  // CRT boot animation overlay
+  let showCRTBoot = $state(true);
 
   // Which object is currently "open" (fullscreen experience)
   let activeObject = $state<string | null>(null);
@@ -219,6 +223,22 @@
     }
   }
 
+  // Deterministic visitor count: base + days since Jan 1, 2025 * multiplier
+  const visitorNumber = $derived.by(() => {
+    const base = 12847;
+    const refDate = new Date('2025-01-01T00:00:00Z');
+    const now = new Date();
+    const daysSinceRef = Math.floor((now.getTime() - refDate.getTime()) / (1000 * 60 * 60 * 24));
+    return base + daysSinceRef * 37;
+  });
+
+  function openRandomToy() {
+    playSound('coin', 0.3);
+    const randomIndex = Math.floor(Math.random() * shelfObjects.length);
+    const randomToy = shelfObjects[randomIndex];
+    openObject(randomToy.id);
+  }
+
   onMount(() => {
     // Initialize hunt and register shelf spots
     initializeHunt();
@@ -294,7 +314,7 @@
         <div class="shelf-items" role="grid" aria-label="Toy shelf">
           {#each getCurrentPageItems() as obj, i}
             <button
-              class="shelf-item nes-pointer"
+              class="shelf-item nes-pointer toy-{obj.id}"
               class:focused={focusedIndex === i && !activeObject}
               onclick={() => openObject(obj.id)}
               title={obj.desc}
@@ -331,6 +351,10 @@
     </p>
 
     {#if !activeObject}
+      <button class="lucky-btn" onclick={openRandomToy}>
+        <span class="lucky-icon">&#9733;</span> I'm Feeling Lucky
+      </button>
+
       <footer class="retro-footer">
         <div class="footer-separator"></div>
         <div class="footer-content">
@@ -351,7 +375,17 @@
             <span class="tech-badge">p5.js</span>
           </div>
           <p class="footer-flavor">Best viewed in Netscape Navigator 4.0 at 800x600</p>
-          <p class="footer-flavor">You are visitor #<span class="visitor-count">{Math.floor(Math.random() * 99000) + 1000}</span> since 1997</p>
+
+          <!-- Retro Hit Counter -->
+          <div class="hit-counter">
+            <span class="hit-counter-label">You are visitor</span>
+            <div class="hit-counter-digits">
+              {#each String(visitorNumber).padStart(6, '0') as digit}
+                <span class="hit-digit">{digit}</span>
+              {/each}
+            </div>
+            <span class="hit-counter-since">since 1997</span>
+          </div>
         </div>
       </footer>
     {/if}
@@ -456,6 +490,10 @@
 
 {#if showGallery}
   <BeanieGallery onClose={() => { showGallery = false; discoveryStats = getDiscoveryStats(); }} />
+{/if}
+
+{#if showCRTBoot}
+  <CRTBoot onComplete={() => { showCRTBoot = false; }} />
 {/if}
 
 <style>
@@ -793,10 +831,164 @@
     }
   }
 
+  /* ── Idle micro-animations per toy ── */
+
+  @keyframes idle-wobble {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(2.5deg); }
+    75% { transform: rotate(-2.5deg); }
+  }
+
+  @keyframes idle-hue {
+    0%, 100% { filter: drop-shadow(2px 2px 0 rgba(0,0,0,0.5)) hue-rotate(0deg); }
+    50% { filter: drop-shadow(2px 2px 0 rgba(0,0,0,0.5)) hue-rotate(30deg); }
+  }
+
+  @keyframes idle-slither {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(2px); }
+    75% { transform: translateX(-2px); }
+  }
+
+  @keyframes idle-pulse {
+    0%, 100% { transform: scaleY(1); }
+    50% { transform: scaleY(1.08); }
+  }
+
+  @keyframes idle-nod {
+    0%, 100% { transform: rotate(0deg); }
+    30% { transform: rotate(3deg); }
+    60% { transform: rotate(-2deg); }
+  }
+
+  @keyframes idle-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+  }
+
+  @keyframes idle-plod {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(2px); }
+  }
+
+  @keyframes idle-swim {
+    0%, 100% { transform: translateX(0) rotate(0deg); }
+    25% { transform: translateX(2px) rotate(1.5deg); }
+    75% { transform: translateX(-2px) rotate(-1.5deg); }
+  }
+
+  @keyframes idle-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  @keyframes idle-flutter {
+    0%, 100% { transform: rotate(0deg) skewX(0deg); }
+    25% { transform: rotate(0.8deg) skewX(0.5deg); }
+    75% { transform: rotate(-0.8deg) skewX(-0.5deg); }
+  }
+
+  @keyframes idle-flicker {
+    0%, 100% { opacity: 1; }
+    48% { opacity: 1; }
+    50% { opacity: 0.7; }
+    52% { opacity: 1; }
+    80% { opacity: 1; }
+    82% { opacity: 0.75; }
+    84% { opacity: 1; }
+  }
+
+  @keyframes idle-breathe {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.06); }
+  }
+
+  @keyframes idle-blink {
+    0%, 40%, 60%, 100% { transform: scaleY(1); }
+    50% { transform: scaleY(0.15); }
+  }
+
+  @keyframes idle-rainbow {
+    0% { filter: drop-shadow(2px 2px 0 rgba(0,0,0,0.5)) hue-rotate(0deg); }
+    100% { filter: drop-shadow(2px 2px 0 rgba(0,0,0,0.5)) hue-rotate(360deg); }
+  }
+
+  @keyframes idle-jiggle {
+    0%, 100% { transform: translate(0, 0); }
+    20% { transform: translate(-1px, 1px); }
+    40% { transform: translate(1px, -1px); }
+    60% { transform: translate(-1px, 0); }
+    80% { transform: translate(1px, 1px); }
+  }
+
+  @keyframes idle-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+  }
+
+  @keyframes idle-ring {
+    0%, 100% { transform: rotate(0deg); }
+    10% { transform: rotate(2deg); }
+    20% { transform: rotate(-2deg); }
+    30% { transform: rotate(1.5deg); }
+    40% { transform: rotate(-1.5deg); }
+    50%, 100% { transform: rotate(0deg); }
+  }
+
+  @keyframes idle-glitch {
+    0%, 100% { transform: translate(0, 0); }
+    20% { transform: translate(-1px, 0); }
+    40% { transform: translate(1px, 1px); }
+    60% { transform: translate(0, -1px); }
+    80% { transform: translate(1px, 0); }
+  }
+
+  /* Tamagotchi - gentle wobble */
+  .toy-tamagotchi .item-icon { animation: idle-wobble 3s ease-in-out infinite; animation-delay: 0s; }
+  /* Kid Pix - hue shift */
+  .toy-kidpix .item-icon { animation: idle-hue 5s ease-in-out infinite; animation-delay: 0.4s; }
+  /* Snake - slither wave */
+  .toy-snake .item-icon { animation: idle-slither 3.5s ease-in-out infinite; animation-delay: 0.8s; }
+  /* Winamp - EQ pulse */
+  .toy-winamp .item-icon { animation: idle-pulse 2.5s ease-in-out infinite; animation-delay: 1.2s; }
+  /* Clippy - tiny nod */
+  .toy-clippy .item-icon { animation: idle-nod 4s ease-in-out infinite; animation-delay: 0.3s; }
+  /* AIM - float */
+  .toy-aim .item-icon { animation: idle-float 4s ease-in-out infinite; animation-delay: 1.5s; }
+  /* Oregon Trail - slow plod */
+  .toy-oregontrail .item-icon { animation: idle-plod 5s ease-in-out infinite; animation-delay: 0.7s; }
+  /* Fish Tank - swim drift */
+  .toy-fishtank .item-icon { animation: idle-swim 4.5s ease-in-out infinite; animation-delay: 0.2s; }
+  /* Pogs - slow spin */
+  .toy-pogs .item-icon { animation: idle-spin 8s linear infinite; animation-delay: 1s; }
+  /* MASH - paper flutter */
+  .toy-mash .item-icon { animation: idle-flutter 4s ease-in-out infinite; animation-delay: 0.6s; }
+  /* BadOS - screen flicker */
+  .toy-bados .item-icon { animation: idle-flicker 5s step-end infinite; animation-delay: 2s; }
+  /* Cootie Catcher - breathe pulse */
+  .toy-cootiecatcher .item-icon { animation: idle-breathe 4s ease-in-out infinite; animation-delay: 1.3s; }
+  /* Magic Eye - slow blink */
+  .toy-magiceye .item-icon { animation: idle-blink 6s ease-in-out infinite; animation-delay: 0.9s; }
+  /* Lisa Frank - rainbow cycle */
+  .toy-lisafrank .item-icon { animation: idle-rainbow 6s linear infinite; animation-delay: 0.5s; }
+  /* Koosh Ball - jiggle */
+  .toy-koosh .item-icon { animation: idle-jiggle 3s ease-in-out infinite; animation-delay: 1.8s; }
+  /* Slime Volleyball - gentle bounce */
+  .toy-slimevolleyball .item-icon { animation: idle-bounce 3s ease-in-out infinite; animation-delay: 0.1s; }
+  /* Dial-Up Modem - ring vibrate */
+  .toy-modem .item-icon { animation: idle-ring 4s ease-in-out infinite; animation-delay: 1.6s; }
+  /* Screensaver - flicker */
+  .toy-screensaver .item-icon { animation: idle-flicker 6s step-end infinite; animation-delay: 2.5s; }
+
   @media (prefers-reduced-motion: reduce) {
     .shelf-item {
       animation: none;
       opacity: 1;
+    }
+
+    .shelf-item .item-icon {
+      animation: none !important;
+      filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.5)) !important;
     }
 
     .shelf-item:hover,
@@ -881,8 +1073,89 @@
     font-style: italic;
   }
 
-  .visitor-count {
-    color: #47a847;
+  /* "I'm Feeling Lucky" Button */
+  .lucky-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.8rem;
+    padding: 0.5rem 1.2rem;
+    background: linear-gradient(180deg, #3a3a5c 0%, #2a2a3e 100%);
+    border: 3px solid #f7d51d;
+    border-radius: 6px;
+    color: #f7d51d;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.45rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5);
+    box-shadow: 0 4px 0 #1a1a2e, 0 6px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .lucky-btn:hover {
+    background: linear-gradient(180deg, #4a4a6c 0%, #3a3a4e 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 0 #1a1a2e, 0 8px 16px rgba(0, 0, 0, 0.4);
+  }
+
+  .lucky-btn:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #1a1a2e, 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  .lucky-icon {
+    font-size: 0.6rem;
+    animation: luckySpin 3s linear infinite;
+  }
+
+  @keyframes luckySpin {
+    0%, 100% { transform: rotate(0deg) scale(1); }
+    25% { transform: rotate(15deg) scale(1.1); }
+    50% { transform: rotate(0deg) scale(1); }
+    75% { transform: rotate(-15deg) scale(1.1); }
+  }
+
+  /* Retro Hit Counter */
+  .hit-counter {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    margin-top: 0.4rem;
+  }
+
+  .hit-counter-label {
+    font-size: 0.3rem;
+    color: #666;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .hit-counter-digits {
+    display: flex;
+    gap: 2px;
+    background: #0a0a0a;
+    border: 2px solid #333;
+    border-radius: 3px;
+    padding: 0.3rem 0.4rem;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.8), 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .hit-digit {
+    font-family: 'Press Start 2P', 'Courier New', monospace;
+    font-size: 0.5rem;
+    color: #33ff33;
+    text-shadow: 0 0 6px rgba(51, 255, 51, 0.6), 0 0 12px rgba(51, 255, 51, 0.3);
+    min-width: 0.6rem;
+    text-align: center;
+    line-height: 1;
+  }
+
+  .hit-counter-since {
+    font-size: 0.25rem;
+    color: #555;
+    letter-spacing: 1px;
+    font-style: italic;
   }
 
   @media (max-width: 600px) {
@@ -901,6 +1174,24 @@
 
     .footer-flavor {
       font-size: 0.3rem;
+    }
+
+    .lucky-btn {
+      font-size: 0.4rem;
+      padding: 0.45rem 1rem;
+    }
+
+    .hit-digit {
+      font-size: 0.4rem;
+      min-width: 0.5rem;
+    }
+
+    .hit-counter-label {
+      font-size: 0.25rem;
+    }
+
+    .hit-counter-since {
+      font-size: 0.22rem;
     }
   }
 </style>
