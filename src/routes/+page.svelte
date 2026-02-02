@@ -28,6 +28,10 @@
   import MASH from '$lib/toys/MASH.svelte';
   import CootieCatcher from '$lib/toys/CootieCatcher.svelte';
   import BadOS from '$lib/toys/BadOS.svelte';
+  import BopIt from '$lib/toys/BopIt.svelte';
+  import MarbleMaze from '$lib/toys/MarbleMaze.svelte';
+  import Napster from '$lib/toys/Napster.svelte';
+  import LiteBrite from '$lib/toys/LiteBrite.svelte';
 
   // CRT boot animation overlay
   let showCRTBoot = $state(true);
@@ -66,6 +70,10 @@
     { id: 'mash', name: 'MASH', icon: '📝', desc: 'Predict your future' },
     { id: 'cootiecatcher', name: 'Cootie Catcher', icon: '🔮', desc: 'Pick your fortune' },
     { id: 'bados', name: 'BadOS XP', icon: '🖥️', desc: 'Worst desktop ever' },
+    { id: 'bopit', name: 'Bop It', icon: '🔴', desc: 'Bop twist pull!' },
+    { id: 'marblemaze', name: 'Marble Maze', icon: '🔵', desc: 'Tilt and roll' },
+    { id: 'napster', name: 'LimeWire', icon: '🎵', desc: 'Totally legal downloads' },
+    { id: 'litebrite', name: 'Lite-Brite', icon: '💡', desc: 'Create with light' },
   ];
 
   // Single hiding spot behind the wood shelf
@@ -276,7 +284,7 @@
     <header class="site-header">
       <h1 class="nes-text is-warning">The Book Fair</h1>
       <p class="subtitle">at the end of the internet</p>
-      <p class="tagline">18 interactive toys from the Scholastic shelf of your childhood. Click one, lose an hour.</p>
+      <p class="tagline">22 interactive toys from the Scholastic shelf of your childhood. Click one, lose an hour.</p>
       <button class="collection-btn" onclick={() => { playSound('collect', 0.3); showGallery = true; }}>
         🎒 {discoveryStats.discovered}/{discoveryStats.total}
       </button>
@@ -475,6 +483,22 @@
 {:else if activeObject === 'bados'}
   <div class="object-view" role="dialog" aria-label="BadOS XP">
     <BadOS onClose={closeObject} />
+  </div>
+{:else if activeObject === 'bopit'}
+  <div class="object-view" role="dialog" aria-label="Bop It">
+    <BopIt onClose={closeObject} />
+  </div>
+{:else if activeObject === 'marblemaze'}
+  <div class="object-view" role="dialog" aria-label="Marble Maze">
+    <MarbleMaze onClose={closeObject} />
+  </div>
+{:else if activeObject === 'napster'}
+  <div class="object-view" role="dialog" aria-label="LimeWire">
+    <Napster onClose={closeObject} />
+  </div>
+{:else if activeObject === 'litebrite'}
+  <div class="object-view" role="dialog" aria-label="Lite-Brite">
+    <LiteBrite onClose={closeObject} />
   </div>
 {/if}
 
@@ -979,6 +1003,14 @@
   .toy-modem .item-icon { animation: idle-ring 4s ease-in-out infinite; animation-delay: 1.6s; }
   /* Screensaver - flicker */
   .toy-screensaver .item-icon { animation: idle-flicker 6s step-end infinite; animation-delay: 2.5s; }
+  /* Bop It - bouncing */
+  .toy-bopit .item-icon { animation: idle-bounce 2.5s ease-in-out infinite; animation-delay: 0.4s; }
+  /* Marble Maze - slow roll */
+  .toy-marblemaze .item-icon { animation: idle-spin 10s linear infinite; animation-delay: 1.8s; }
+  /* LimeWire - pulse */
+  .toy-napster .item-icon { animation: idle-pulse 3s ease-in-out infinite; animation-delay: 0.9s; }
+  /* Lite-Brite - glow flicker */
+  .toy-litebrite .item-icon { animation: idle-flicker 4s step-end infinite; animation-delay: 1.2s; }
 
   @media (prefers-reduced-motion: reduce) {
     .shelf-item {

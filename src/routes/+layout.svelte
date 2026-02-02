@@ -38,11 +38,11 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
 
   <!-- Description -->
-  <meta name="description" content="A shelf of interactive 90s toys at the end of the internet. 18 nostalgic experiences, from Tamagotchi to Kid Pix to Oregon Trail.">
+  <meta name="description" content="A shelf of interactive 90s toys at the end of the internet. 22 nostalgic experiences, from Tamagotchi to Kid Pix to Oregon Trail.">
 
   <!-- Open Graph -->
   <meta property="og:title" content="The Book Fair">
-  <meta property="og:description" content="A shelf of interactive 90s toys at the end of the internet. 18 nostalgic experiences, from Tamagotchi to Kid Pix to Oregon Trail.">
+  <meta property="og:description" content="A shelf of interactive 90s toys at the end of the internet. 22 nostalgic experiences, from Tamagotchi to Kid Pix to Oregon Trail.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://thebookfair.thingvalla.tech">
   <!-- TODO: Create an actual og-preview.png (1200x630) and place it in static/ -->
@@ -51,7 +51,7 @@
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="The Book Fair">
-  <meta name="twitter:description" content="A shelf of interactive 90s toys at the end of the internet. 18 nostalgic experiences, from Tamagotchi to Kid Pix to Oregon Trail.">
+  <meta name="twitter:description" content="A shelf of interactive 90s toys at the end of the internet. 22 nostalgic experiences, from Tamagotchi to Kid Pix to Oregon Trail.">
   <meta name="twitter:image" content="/og-preview.png">
 </svelte:head>
 
