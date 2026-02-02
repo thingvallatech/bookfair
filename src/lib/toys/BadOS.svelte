@@ -77,7 +77,7 @@
           openWindow('folder', 'New Folder (37)', 'empty');
           break;
         case 'notepad':
-          openWindow('notepad', 'Notepad', 'empty');
+          openWindow('notepad', 'Untitled - Notepad', 'notepad', 500, 350);
           break;
         case 'recycle':
           openWindow('recycle', 'Recycle Bin', 'recycle');
@@ -138,6 +138,80 @@
       recycleIcon.y = newY;
       playSound('whoosh', 0.2);
     }
+  }
+
+  // ========================
+  // WELCOME DIALOG (swapping buttons gag)
+  // ========================
+  let welcomeVisible = $state(false);
+  let buttonsSwapped = $state(false);
+  let swapCount = $state(0);
+
+  function handleButtonAreaEnter() {
+    if (swapCount < 4) {
+      buttonsSwapped = !buttonsSwapped;
+      swapCount++;
+      playSound('pop', 0.2);
+    }
+  }
+
+  function dismissWelcome() {
+    welcomeVisible = false;
+    playSound('click');
+  }
+
+  function cancelWelcome() {
+    welcomeVisible = false;
+    playSound('click');
+    setTimeout(() => {
+      welcomeVisible = true;
+      playSound('error');
+    }, 800);
+  }
+
+  // ========================
+  // NOTEPAD (backwards typing gag)
+  // ========================
+  let notepadText = $state(".gniklaw er'uoY .SOdaB ot emocleW");
+  let notepadTitleStretch = $state(0);
+
+  function handleNotepadKeydown(e: KeyboardEvent) {
+    const target = e.target as HTMLTextAreaElement;
+    if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      notepadText = e.key + notepadText;
+      playSound('click', 0.05);
+      requestAnimationFrame(() => {
+        target.setSelectionRange(0, 0);
+      });
+    } else if (e.key === 'Backspace') {
+      e.preventDefault();
+      if (notepadText.length > 0) {
+        notepadText = notepadText.slice(1);
+      }
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      notepadText = '\n' + notepadText;
+      requestAnimationFrame(() => {
+        target.setSelectionRange(0, 0);
+      });
+    }
+  }
+
+  function handleNotepadTitlebarMove(e: MouseEvent) {
+    const titlebar = (e.currentTarget as HTMLElement);
+    const rect = titlebar.getBoundingClientRect();
+    const distFromRight = rect.right - e.clientX;
+    if (distFromRight < 100) {
+      // The closer to the right edge, the more stretch (max 0.2 factor = 20% extra)
+      notepadTitleStretch = Math.min(0.2, (100 - distFromRight) / 500);
+    } else {
+      notepadTitleStretch = 0;
+    }
+  }
+
+  function handleNotepadTitlebarLeave() {
+    notepadTitleStretch = 0;
   }
 
   // Clock state
@@ -286,6 +360,9 @@
     playSound('powerup', 0.4);
     updateClock();
     clockInterval = setInterval(updateClock, 10000);
+    setTimeout(() => {
+      welcomeVisible = true;
+    }, 1500);
   });
 
   onDestroy(() => {
@@ -352,19 +429,29 @@
     {#each windows.filter(w => w.visible) as win (win.id)}
       <div
         class="xp-window"
-        style="left: {win.x}px; top: {win.y}px; width: {win.width}px; height: {win.height}px; z-index: {win.zIndex}"
+        style="left: {win.x}px; top: {win.y}px; width: {win.id === 'notepad' ? `calc(${win.width}px + ${notepadTitleStretch * 100}px)` : `${win.width}px`}; height: {win.height}px; z-index: {win.zIndex}"
         onmousedown={() => bringToFront(win.id)}
         role="dialog"
         tabindex="-1"
         aria-label={win.title}
       >
         <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div class="xp-titlebar" onmousedown={(e) => startDrag(e, win.id)}>
+        <div
+          class="xp-titlebar"
+          onmousedown={(e) => startDrag(e, win.id)}
+          onmousemove={win.id === 'notepad' ? handleNotepadTitlebarMove : undefined}
+          onmouseleave={win.id === 'notepad' ? handleNotepadTitlebarLeave : undefined}
+        >
           <span class="xp-title-text">{win.sulking ? win.title + ' ...fine.' : win.title}</span>
           <div class="xp-titlebar-buttons">
             <button class="xp-btn xp-btn-minimize" aria-label="Minimize">_</button>
             <button class="xp-btn xp-btn-maximize" aria-label="Maximize">□</button>
-            <button class="xp-btn xp-btn-close" onclick={() => closeWindow(win.id)} aria-label="Close">×</button>
+            <button
+              class="xp-btn xp-btn-close"
+              class:xp-btn-tiny={win.id === 'notepad'}
+              onclick={() => closeWindow(win.id)}
+              aria-label="Close"
+            >×</button>
           </div>
         </div>
         <div class="xp-window-body">
@@ -379,11 +466,57 @@
             <p style="padding: 20px; color: #333; font-size: 18px; text-align: center; font-style: italic;">Nice try.</p>
           {:else if win.content === 'recycle'}
             <p style="padding: 20px; color: #666;">This folder is empty. Just like my soul.</p>
+          {:else if win.content === 'notepad'}
+            <div class="notepad-container">
+              <div class="notepad-menubar">
+                <span class="notepad-menu-item">File</span>
+                <span class="notepad-menu-item">Edit</span>
+                <span class="notepad-menu-item">Format</span>
+                <span class="notepad-menu-item">View</span>
+                <span class="notepad-menu-item">Help</span>
+              </div>
+              <textarea
+                class="notepad-textarea"
+                bind:value={notepadText}
+                onkeydown={handleNotepadKeydown}
+                spellcheck="false"
+              ></textarea>
+            </div>
           {/if}
         </div>
       </div>
     {/each}
   </div>
+
+  <!-- Welcome Dialog (swapping buttons gag) -->
+  {#if welcomeVisible}
+    <div class="welcome-overlay">
+      <div class="welcome-dialog" role="alertdialog" aria-label="Welcome to BadOS XP">
+        <div class="welcome-titlebar">
+          <span class="welcome-title-text">Welcome to BadOS XP</span>
+          <button class="xp-btn xp-btn-close" onclick={dismissWelcome} aria-label="Close">×</button>
+        </div>
+        <div class="welcome-body">
+          <div class="welcome-content">
+            <span class="welcome-icon">&#9888;&#65039;</span>
+            <div class="welcome-text">
+              <p class="welcome-heading">Welcome to BadOS XP!</p>
+              <p class="welcome-quote">"Where every click is an adventure<br>and every adventure is a mistake."</p>
+            </div>
+          </div>
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div
+            class="welcome-buttons"
+            style="flex-direction: {buttonsSwapped ? 'row-reverse' : 'row'}"
+            onmouseenter={handleButtonAreaEnter}
+          >
+            <button class="welcome-btn" onclick={dismissWelcome}>OK</button>
+            <button class="welcome-btn" onclick={cancelWelcome}>Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  {/if}
 
   <!-- Close button -->
   <CloseButton onClose={onClose} variant="light" />
@@ -1038,5 +1171,223 @@
     60% { transform: translateX(3px) rotate(1deg); }
     75% { transform: translateX(-2px); }
     90% { transform: translateX(2px); }
+  }
+
+  /* ========================
+     WELCOME DIALOG
+     ======================== */
+  .welcome-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.15);
+  }
+
+  .welcome-dialog {
+    width: 420px;
+    border-radius: 8px 8px 0 0;
+    border: 1px solid #0054e3;
+    box-shadow:
+      2px 2px 15px rgba(0, 0, 0, 0.5),
+      0 0 40px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    animation: welcome-appear 0.3s ease-out;
+  }
+
+  @keyframes welcome-appear {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .welcome-titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 28px;
+    min-height: 28px;
+    padding: 0 4px 0 8px;
+    background: linear-gradient(
+      180deg,
+      #0058e6 0%,
+      #1a6ff5 20%,
+      #3a8cf4 50%,
+      #1a6ff5 80%,
+      #0058e6 100%
+    );
+    border-radius: 8px 8px 0 0;
+  }
+
+  .welcome-title-text {
+    font-size: 12px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.4);
+    flex: 1;
+    font-family: 'Tahoma', 'Segoe UI', sans-serif;
+  }
+
+  .welcome-body {
+    background: #ece9d8;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .welcome-content {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .welcome-icon {
+    font-size: 32px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .welcome-text {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .welcome-heading {
+    font-size: 13px;
+    font-weight: bold;
+    color: #000;
+    font-family: 'Tahoma', 'Segoe UI', sans-serif;
+    margin: 0;
+  }
+
+  .welcome-quote {
+    font-size: 12px;
+    color: #444;
+    font-style: italic;
+    font-family: 'Tahoma', 'Segoe UI', sans-serif;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .welcome-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .welcome-btn {
+    min-width: 80px;
+    height: 26px;
+    padding: 0 16px;
+    border: 1px solid #003c74;
+    border-radius: 3px;
+    font-size: 12px;
+    font-family: 'Tahoma', 'Segoe UI', sans-serif;
+    cursor: pointer;
+    background: linear-gradient(
+      180deg,
+      #fff 0%,
+      #f0f0ea 40%,
+      #e4e0d8 70%,
+      #d6d2c6 100%
+    );
+    color: #000;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.8),
+      0 1px 2px rgba(0, 0, 0, 0.15);
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .welcome-btn:hover {
+    background: linear-gradient(
+      180deg,
+      #fff 0%,
+      #f5f5f0 40%,
+      #ebe8e0 70%,
+      #e0dcd4 100%
+    );
+    border-color: #0055cc;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.8),
+      0 0 3px rgba(0, 85, 204, 0.4);
+  }
+
+  .welcome-btn:active {
+    background: linear-gradient(
+      180deg,
+      #d6d2c6 0%,
+      #e0dcd4 50%,
+      #d6d2c6 100%
+    );
+    box-shadow:
+      inset 0 1px 2px rgba(0, 0, 0, 0.2);
+  }
+
+  /* ========================
+     NOTEPAD
+     ======================== */
+  .notepad-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .notepad-menubar {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    height: 22px;
+    min-height: 22px;
+    background: #ece9d8;
+    border-bottom: 1px solid #c0c0c0;
+    padding: 0 2px;
+    font-family: 'Tahoma', 'Segoe UI', sans-serif;
+    font-size: 11px;
+    color: #000;
+  }
+
+  .notepad-menu-item {
+    padding: 2px 8px;
+    cursor: default;
+  }
+
+  .notepad-menu-item:hover {
+    background: #316ac5;
+    color: white;
+  }
+
+  .notepad-textarea {
+    flex: 1;
+    border: none;
+    outline: none;
+    resize: none;
+    padding: 4px 6px;
+    font-family: 'Lucida Console', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.4;
+    background: #fff;
+    color: #000;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* ========================
+     TINY CLOSE BUTTON (notepad)
+     ======================== */
+  .xp-btn-tiny {
+    width: 6px !important;
+    min-width: 6px !important;
+    overflow: hidden;
+    padding: 0 !important;
+    font-size: 8px !important;
+    transition: width 0.2s ease;
+  }
+
+  .xp-btn-tiny:hover {
+    width: 6px !important;
   }
 </style>
