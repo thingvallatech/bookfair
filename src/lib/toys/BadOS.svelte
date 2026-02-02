@@ -5,6 +5,7 @@
   import { playSound } from '$lib/stores/audio';
   import { registerSpots, getBeaniesForArea, type HidingSpot } from '$lib/stores/beanieHunt';
   import type { Beanie } from '$lib/stores/beanies';
+  import PokeDoom from './pokedoom/PokeDoom.svelte';
 
   interface Props {
     onClose: () => void;
@@ -48,6 +49,7 @@
     { id: 'folder', label: 'New Folder (37)', icon: '📁' },
     { id: 'notepad', label: 'Notepad', icon: '📝' },
     { id: 'recycle', label: 'Recycle Bin', icon: '🗑️' },
+    { id: 'pokedoom', label: 'PokeDOOM.exe', icon: '🎮' },
     { id: 'login', label: 'Login', icon: '🔐' },
   ];
 
@@ -97,6 +99,9 @@
           break;
         case 'recycle':
           openWindow('recycle', 'Recycle Bin', 'recycle');
+          break;
+        case 'pokedoom':
+          openWindow('pokedoom', 'PokeDOOM.exe', 'pokedoom', 520, 400);
           break;
         case 'login':
           loginPassword = '';
@@ -984,6 +989,10 @@
                   <div class="login-error">Incorrect password. (We didn't even check.)</div>
                 {/if}
               </div>
+            </div>
+          {:else if win.content === 'pokedoom'}
+            <div class="pokedoom-window-body">
+              <PokeDoom />
             </div>
           {:else if win.content === 'progress'}
             <div class="progress-container">
@@ -2870,5 +2879,12 @@
     right: 100px;
     z-index: 95;
     pointer-events: auto;
+  }
+
+  .pokedoom-window-body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
   }
 </style>
