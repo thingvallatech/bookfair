@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import CloseButton from '$lib/components/CloseButton.svelte';
   import HidingBeanie from '$lib/components/HidingBeanie.svelte';
+  import TouchHint from '$lib/components/TouchHint.svelte';
   import { playSound } from '$lib/stores/audio';
   import { registerSpots, getBeaniesForArea, type HidingSpot } from '$lib/stores/beanieHunt';
   import type { Beanie } from '$lib/stores/beanies';
@@ -648,6 +649,12 @@
       <span>← → to move · ↑ or SPACE to jump · ESC to exit</span>
     </div>
   {/if}
+
+  <TouchHint
+    gesture="tap"
+    message="Use controls to play"
+    storageKey="touchhint-slimevolleyball"
+  />
 </div>
 
 <style>

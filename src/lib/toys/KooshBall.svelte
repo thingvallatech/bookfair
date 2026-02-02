@@ -3,6 +3,7 @@
   import CloseButton from '$lib/components/CloseButton.svelte';
   import { playSound } from '$lib/stores/audio';
   import HidingBeanie from '$lib/components/HidingBeanie.svelte';
+  import TouchHint from '$lib/components/TouchHint.svelte';
   import { registerSpots, getBeaniesForArea, type HidingSpot } from '$lib/stores/beanieHunt';
   import type { Beanie } from '$lib/stores/beanies';
 
@@ -356,6 +357,12 @@
       <span>Click and drag to play</span>
     {/if}
   </div>
+
+  <TouchHint
+    gesture="drag"
+    message="Drag to throw"
+    storageKey="touchhint-koosh"
+  />
 </div>
 
 <style>
