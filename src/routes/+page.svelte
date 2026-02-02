@@ -32,6 +32,9 @@
   import MarbleMaze from '$lib/toys/MarbleMaze.svelte';
   import Napster from '$lib/toys/Napster.svelte';
   import LiteBrite from '$lib/toys/LiteBrite.svelte';
+  import ScholasticOrder from '$lib/toys/ScholasticOrder.svelte';
+  import Furby from '$lib/toys/Furby.svelte';
+  import AskJeeves from '$lib/toys/AskJeeves.svelte';
 
   // CRT boot animation overlay
   let showCRTBoot = $state(true);
@@ -74,6 +77,9 @@
     { id: 'marblemaze', name: 'Marble Maze', icon: '🔵', desc: 'Tilt and roll' },
     { id: 'napster', name: 'LimeWire', icon: '🎵', desc: 'Totally legal downloads' },
     { id: 'litebrite', name: 'Lite-Brite', icon: '💡', desc: 'Create with light' },
+    { id: 'scholastic', name: 'Book Order', icon: '📚', desc: 'Circle your picks' },
+    { id: 'furby', name: 'Furby', icon: '🧸', desc: 'Dah boo-loo!' },
+    { id: 'askjeeves', name: 'Ask Jeeves', icon: '🎩', desc: 'Ask the butler' },
   ];
 
   // Single hiding spot behind the wood shelf
@@ -284,7 +290,7 @@
     <header class="site-header">
       <h1 class="nes-text is-warning">The Book Fair</h1>
       <p class="subtitle">at the end of the internet</p>
-      <p class="tagline">22 interactive toys from the Scholastic shelf of your childhood. Click one, lose an hour.</p>
+      <p class="tagline">25 interactive toys from the Scholastic shelf of your childhood. Click one, lose an hour.</p>
       <button class="collection-btn" onclick={() => { playSound('collect', 0.3); showGallery = true; }}>
         🎒 {discoveryStats.discovered}/{discoveryStats.total}
       </button>
@@ -499,6 +505,18 @@
 {:else if activeObject === 'litebrite'}
   <div class="object-view" role="dialog" aria-label="Lite-Brite">
     <LiteBrite onClose={closeObject} />
+  </div>
+{:else if activeObject === 'scholastic'}
+  <div class="object-view" role="dialog" aria-label="Scholastic Book Order">
+    <ScholasticOrder onClose={closeObject} />
+  </div>
+{:else if activeObject === 'furby'}
+  <div class="object-view" role="dialog" aria-label="Furby">
+    <Furby onClose={closeObject} />
+  </div>
+{:else if activeObject === 'askjeeves'}
+  <div class="object-view" role="dialog" aria-label="Ask Jeeves">
+    <AskJeeves onClose={closeObject} />
   </div>
 {/if}
 
@@ -1011,6 +1029,12 @@
   .toy-napster .item-icon { animation: idle-pulse 3s ease-in-out infinite; animation-delay: 0.9s; }
   /* Lite-Brite - glow flicker */
   .toy-litebrite .item-icon { animation: idle-flicker 4s step-end infinite; animation-delay: 1.2s; }
+  /* Scholastic Book Order - paper flutter */
+  .toy-scholastic .item-icon { animation: idle-flutter 4s ease-in-out infinite; animation-delay: 2.0s; }
+  /* Furby - wobble */
+  .toy-furby .item-icon { animation: idle-wobble 3s ease-in-out infinite; animation-delay: 0.6s; }
+  /* Ask Jeeves - nod */
+  .toy-askjeeves .item-icon { animation: idle-nod 4s ease-in-out infinite; animation-delay: 1.5s; }
 
   @media (prefers-reduced-motion: reduce) {
     .shelf-item {
