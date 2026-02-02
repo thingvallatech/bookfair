@@ -238,6 +238,15 @@
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
+  function saveDrawing() {
+    const dataURL = canvas.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.download = `kidpix-masterpiece-${Date.now()}.png`;
+    link.href = dataURL;
+    link.click();
+    playSound('success');
+  }
+
   function selectTool(tool: typeof currentTool) {
     playSound('click', 0.3);
     currentTool = tool;
@@ -305,6 +314,7 @@
 
     <div class="tool-group">
       <button class="tool-btn danger" onclick={clearCanvas} title="Clear All - Oh No!">💣</button>
+      <button class="tool-btn save" onclick={saveDrawing} title="Save Drawing">💾</button>
     </div>
 
     <div class="tool-group size-control">
@@ -471,6 +481,14 @@
 
   .tool-btn.danger {
     background: linear-gradient(180deg, #ff6666 0%, #cc3333 100%);
+  }
+
+  .tool-btn.save {
+    background: linear-gradient(180deg, #66cc66 0%, #339966 100%);
+  }
+
+  .tool-btn.save:hover {
+    background: linear-gradient(180deg, #77dd77 0%, #44aa77 100%);
   }
 
   .size-control {
