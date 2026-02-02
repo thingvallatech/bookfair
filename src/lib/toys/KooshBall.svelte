@@ -2,12 +2,18 @@
   import { onMount, onDestroy } from 'svelte';
   import CloseButton from '$lib/components/CloseButton.svelte';
   import { playSound } from '$lib/stores/audio';
+  import HidingBeanie from '$lib/components/HidingBeanie.svelte';
+  import { registerSpots, getBeaniesForArea, type HidingSpot } from '$lib/stores/beanieHunt';
+  import type { Beanie } from '$lib/stores/beanies';
 
   interface Props {
     onClose: () => void;
   }
 
   let { onClose }: Props = $props();
+
+  const hidingSpots: HidingSpot[] = [{ id: 'under-koosh' }];
+  let hiddenBeanie = $state<Beanie | null>(null);
 
   let canvas: HTMLCanvasElement;
   let ctx: CanvasRenderingContext2D;
@@ -302,6 +308,10 @@
 
     window.addEventListener('resize', resizeCanvas);
     gameLoop();
+
+    registerSpots('koosh', hidingSpots);
+    const beanies = getBeaniesForArea('koosh');
+    hiddenBeanie = beanies.get('under-koosh') || null;
   });
 
   onDestroy(() => {
@@ -325,6 +335,12 @@
     ontouchmove={handleTouchMove}
     ontouchend={handleTouchEnd}
   ></canvas>
+
+  {#if hiddenBeanie}
+    <div class="beanie-under-koosh">
+      <HidingBeanie beanie={hiddenBeanie} />
+    </div>
+  {/if}
 
   <div class="hint">
     {#if isDragging}
@@ -372,6 +388,17 @@
 
   canvas:active {
     cursor: grabbing;
+  }
+
+  .beanie-under-koosh {
+    position: absolute;
+    bottom: 60px;
+    left: 24px;
+    z-index: 5;
+  }
+
+  :global(.beanie-under-koosh .discovered) {
+    z-index: 15 !important;
   }
 
   .hint {

@@ -1,13 +1,20 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import CloseButton from '$lib/components/CloseButton.svelte';
+  import HidingBeanie from '$lib/components/HidingBeanie.svelte';
   import { playSound } from '$lib/stores/audio';
+  import { registerSpots, getBeaniesForArea, type HidingSpot } from '$lib/stores/beanieHunt';
+  import type { Beanie } from '$lib/stores/beanies';
 
   interface Props {
     onClose: () => void;
   }
 
   let { onClose }: Props = $props();
+
+  // Hidden beanie behind scoreboard
+  const hidingSpots: HidingSpot[] = [{ id: 'behind-scoreboard' }];
+  let hiddenBeanie = $state<Beanie | null>(null);
 
   // Game constants
   const GRID_SIZE = 20;
@@ -283,6 +290,11 @@
     calculateGrid();
     initGame();
 
+    // Register hiding spot
+    registerSpots('snake', hidingSpots);
+    const beanies = getBeaniesForArea('snake');
+    hiddenBeanie = beanies.get('behind-scoreboard') || null;
+
     window.addEventListener('keydown', handleKeydown);
     window.addEventListener('resize', calculateGrid);
 
@@ -317,9 +329,14 @@
 
   <div class="game-header">
     <h1 class="title">🐍 SNAKE</h1>
-    <div class="scores">
-      <span class="score">Score: {score}</span>
-      <span class="high-score">Best: {highScore}</span>
+    <div class="scores-wrapper">
+      {#if hiddenBeanie}
+        <HidingBeanie beanie={hiddenBeanie} class="scoreboard-beanie" />
+      {/if}
+      <div class="scores">
+        <span class="score">Score: {score}</span>
+        <span class="high-score">Best: {highScore}</span>
+      </div>
     </div>
   </div>
 
@@ -758,6 +775,21 @@
 
   .touch-device .scores {
     font-size: 0.6rem;
+  }
+
+  .scores-wrapper {
+    position: relative;
+  }
+
+  :global(.scoreboard-beanie) {
+    position: absolute;
+    top: -5px;
+    right: -30px;
+    z-index: 5;
+  }
+
+  :global(.scoreboard-beanie.discovered) {
+    z-index: 15 !important;
   }
 
   @media (max-width: 500px) {

@@ -1,13 +1,20 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import CloseButton from '$lib/components/CloseButton.svelte';
+  import HidingBeanie from '$lib/components/HidingBeanie.svelte';
   import { playSound } from '$lib/stores/audio';
+  import { registerSpots, getBeaniesForArea, type HidingSpot } from '$lib/stores/beanieHunt';
+  import type { Beanie } from '$lib/stores/beanies';
 
   interface Props {
     onClose: () => void;
   }
 
   let { onClose }: Props = $props();
+
+  // Hidden beanie behind rainbow
+  const hidingSpots: HidingSpot[] = [{ id: 'behind-rainbow' }];
+  let hiddenBeanie = $state<Beanie | null>(null);
 
   let canvas: HTMLCanvasElement;
   let ctx: CanvasRenderingContext2D;
@@ -133,6 +140,11 @@
     draw();
 
     window.addEventListener('resize', resize);
+
+    // Register hiding spot
+    registerSpots('lisafrank', hidingSpots);
+    const beanies = getBeaniesForArea('lisafrank');
+    hiddenBeanie = beanies.get('behind-rainbow') || null;
   });
 
   onDestroy(() => {
@@ -150,6 +162,10 @@
 
 <div class="lisa-frank">
   <CloseButton {onClose} variant="light" />
+
+  {#if hiddenBeanie}
+    <HidingBeanie beanie={hiddenBeanie} class="rainbow-beanie" />
+  {/if}
 
   <canvas bind:this={canvas}></canvas>
 
@@ -283,6 +299,17 @@
   .control-group input[type="range"] {
     width: 80px;
     accent-color: #ff69b4;
+  }
+
+  :global(.rainbow-beanie) {
+    position: absolute;
+    top: 60px;
+    right: 20px;
+    z-index: 5;
+  }
+
+  :global(.rainbow-beanie.discovered) {
+    z-index: 15 !important;
   }
 
   @media (max-width: 600px) {

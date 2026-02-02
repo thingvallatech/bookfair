@@ -3,12 +3,18 @@
   import { Howl } from 'howler';
   import CloseButton from '$lib/components/CloseButton.svelte';
   import { playSound } from '$lib/stores/audio';
+  import HidingBeanie from '$lib/components/HidingBeanie.svelte';
+  import { registerSpots, getBeaniesForArea, type HidingSpot } from '$lib/stores/beanieHunt';
+  import type { Beanie } from '$lib/stores/beanies';
 
   interface Props {
     onClose: () => void;
   }
 
   let { onClose }: Props = $props();
+
+  const hidingSpots: HidingSpot[] = [{ id: 'behind-modem' }];
+  let hiddenBeanie = $state<Beanie | null>(null);
 
   let isConnecting = $state(false);
   let isConnected = $state(false);
@@ -116,6 +122,12 @@
     onClose();
   }
 
+  onMount(() => {
+    registerSpots('dialup', hidingSpots);
+    const beanies = getBeaniesForArea('dialup');
+    hiddenBeanie = beanies.get('behind-modem') || null;
+  });
+
   onDestroy(() => {
     disconnect();
   });
@@ -170,6 +182,12 @@
         <span class="connect-hint">Click to dial</span>
       {/if}
     </button>
+
+    {#if hiddenBeanie}
+      <div class="beanie-behind-modem">
+        <HidingBeanie beanie={hiddenBeanie} />
+      </div>
+    {/if}
 
     <!-- Connection status display -->
     <div class="status-display">
@@ -254,6 +272,18 @@
     flex-direction: column;
     align-items: center;
     gap: 24px;
+    position: relative;
+  }
+
+  .beanie-behind-modem {
+    position: absolute;
+    top: -10px;
+    right: -30px;
+    z-index: 5;
+  }
+
+  :global(.beanie-behind-modem .discovered) {
+    z-index: 15 !important;
   }
 
   /* The physical modem unit - now a button */

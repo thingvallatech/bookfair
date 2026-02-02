@@ -2,12 +2,18 @@
   import { onMount } from 'svelte';
   import CloseButton from '$lib/components/CloseButton.svelte';
   import { playSound } from '$lib/stores/audio';
+  import HidingBeanie from '$lib/components/HidingBeanie.svelte';
+  import { registerSpots, getBeaniesForArea, type HidingSpot } from '$lib/stores/beanieHunt';
+  import type { Beanie } from '$lib/stores/beanies';
 
   interface Props {
     onClose: () => void;
   }
 
   let { onClose }: Props = $props();
+
+  const hidingSpots: HidingSpot[] = [{ id: 'behind-frame' }];
+  let hiddenBeanie = $state<Beanie | null>(null);
 
   let canvas: HTMLCanvasElement;
   let ctx: CanvasRenderingContext2D;
@@ -212,6 +218,10 @@
     canvas.width = 400;
     canvas.height = 300;
     generateStereogram();
+
+    registerSpots('magiceye', hidingSpots);
+    const beanies = getBeaniesForArea('magiceye');
+    hiddenBeanie = beanies.get('behind-frame') || null;
   });
 
   $effect(() => {
@@ -234,6 +244,12 @@
       {#if showHint}
         <div class="hint-overlay">
           <p>Hidden shape: {shapes[currentShape].name}</p>
+        </div>
+      {/if}
+
+      {#if hiddenBeanie}
+        <div class="beanie-behind-frame">
+          <HidingBeanie beanie={hiddenBeanie} />
         </div>
       {/if}
     </div>
@@ -328,6 +344,17 @@
     display: block;
     border-radius: 4px;
     image-rendering: pixelated;
+  }
+
+  .beanie-behind-frame {
+    position: absolute;
+    top: -12px;
+    left: -16px;
+    z-index: 5;
+  }
+
+  :global(.beanie-behind-frame .discovered) {
+    z-index: 15 !important;
   }
 
   .hint-overlay {

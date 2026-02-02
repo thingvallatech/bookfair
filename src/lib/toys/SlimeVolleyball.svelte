@@ -1,13 +1,20 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import CloseButton from '$lib/components/CloseButton.svelte';
+  import HidingBeanie from '$lib/components/HidingBeanie.svelte';
   import { playSound } from '$lib/stores/audio';
+  import { registerSpots, getBeaniesForArea, type HidingSpot } from '$lib/stores/beanieHunt';
+  import type { Beanie } from '$lib/stores/beanies';
 
   interface Props {
     onClose: () => void;
   }
 
   let { onClose }: Props = $props();
+
+  // Hidden beanie behind net
+  const hidingSpots: HidingSpot[] = [{ id: 'behind-net' }];
+  let hiddenBeanie = $state<Beanie | null>(null);
 
   // Game constants
   const GRAVITY = 0.4;
@@ -526,6 +533,11 @@
   onMount(() => {
     isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
+    // Register hiding spot
+    registerSpots('slimevolleyball', hidingSpots);
+    const beanies = getBeaniesForArea('slimevolleyball');
+    hiddenBeanie = beanies.get('behind-net') || null;
+
     ctx = canvas.getContext('2d')!;
     resizeCanvas();
     resetPositions();
@@ -564,6 +576,9 @@
   </div>
 
   <div class="canvas-wrapper">
+    {#if hiddenBeanie}
+      <HidingBeanie beanie={hiddenBeanie} class="net-beanie" />
+    {/if}
     <canvas bind:this={canvas}></canvas>
 
     {#if gameState === 'ready'}
@@ -802,6 +817,18 @@
 
   .touch-device .title {
     font-size: 1.1rem;
+  }
+
+  :global(.net-beanie) {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 5;
+  }
+
+  :global(.net-beanie.discovered) {
+    z-index: 15 !important;
   }
 
   @media (max-width: 500px) {

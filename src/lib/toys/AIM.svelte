@@ -2,12 +2,18 @@
   import { onMount } from 'svelte';
   import CloseButton from '$lib/components/CloseButton.svelte';
   import { playSound } from '$lib/stores/audio';
+  import HidingBeanie from '$lib/components/HidingBeanie.svelte';
+  import { registerSpots, getBeaniesForArea, type HidingSpot } from '$lib/stores/beanieHunt';
+  import type { Beanie } from '$lib/stores/beanies';
 
   interface Props {
     onClose: () => void;
   }
 
   let { onClose }: Props = $props();
+
+  const hidingSpots: HidingSpot[] = [{ id: 'behind-buddylist' }];
+  let hiddenBeanie = $state<Beanie | null>(null);
 
   interface Buddy {
     name: string;
@@ -131,6 +137,12 @@
       sendMessage();
     }
   }
+
+  onMount(() => {
+    registerSpots('aim', hidingSpots);
+    const beanies = getBeaniesForArea('aim');
+    hiddenBeanie = beanies.get('behind-buddylist') || null;
+  });
 </script>
 
 <div class="aim">
@@ -273,6 +285,12 @@
     <div class="warning-banner">
       ⚠️ Remember: Never give out your password or personal info!
     </div>
+
+    {#if hiddenBeanie}
+      <div class="beanie-behind-buddylist">
+        <HidingBeanie beanie={hiddenBeanie} />
+      </div>
+    {/if}
   </div>
 </div>
 
@@ -312,6 +330,18 @@
     max-width: 320px;
     box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
     overflow: hidden;
+    position: relative;
+  }
+
+  .beanie-behind-buddylist {
+    position: absolute;
+    bottom: 30px;
+    right: -18px;
+    z-index: 5;
+  }
+
+  :global(.beanie-behind-buddylist .discovered) {
+    z-index: 15 !important;
   }
 
   .title-bar {

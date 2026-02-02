@@ -1,12 +1,20 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import CloseButton from '$lib/components/CloseButton.svelte';
+  import HidingBeanie from '$lib/components/HidingBeanie.svelte';
   import { playSound } from '$lib/stores/audio';
+  import { registerSpots, getBeaniesForArea, type HidingSpot } from '$lib/stores/beanieHunt';
+  import type { Beanie } from '$lib/stores/beanies';
 
   interface Props {
     onClose: () => void;
   }
 
   let { onClose }: Props = $props();
+
+  // Hidden beanie behind wagon
+  const hidingSpots: HidingSpot[] = [{ id: 'behind-wagon' }];
+  let hiddenBeanie = $state<Beanie | null>(null);
 
   interface GameState {
     screen: 'title' | 'name' | 'store' | 'travel' | 'event' | 'dead' | 'win' | 'river' | 'hunt' | 'landmark';
@@ -299,6 +307,12 @@
     nameInput = '';
   }
 
+  onMount(() => {
+    registerSpots('oregontrail', hidingSpots);
+    const beanies = getBeaniesForArea('oregontrail');
+    hiddenBeanie = beanies.get('behind-wagon') || null;
+  });
+
   function getWeatherEmoji(): string {
     switch (game.weather) {
       case 'rain': return '🌧️';
@@ -311,6 +325,10 @@
 
 <div class="oregon-trail">
   <CloseButton {onClose} />
+
+  {#if hiddenBeanie}
+    <HidingBeanie beanie={hiddenBeanie} class="wagon-beanie" />
+  {/if}
 
   <div class="game-screen">
     {#if game.screen === 'title'}
@@ -859,5 +877,16 @@
     font-size: 0.5rem;
     color: #00aa00;
     margin-top: 15px;
+  }
+
+  :global(.wagon-beanie) {
+    position: absolute;
+    bottom: 40px;
+    left: 20px;
+    z-index: 5;
+  }
+
+  :global(.wagon-beanie.discovered) {
+    z-index: 15 !important;
   }
 </style>
