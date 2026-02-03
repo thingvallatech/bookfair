@@ -7,11 +7,14 @@
   import HidingBeanie from '$lib/components/HidingBeanie.svelte';
   import CRTBoot from '$lib/components/CRTBoot.svelte';
   import Onboarding from '$lib/components/Onboarding.svelte';
+  import ToyTransition from '$lib/components/ToyTransition.svelte';
   import { playSound } from '$lib/stores/audio';
   import { haptic } from '$lib/stores/haptics';
   import { initializeHunt, registerSpots, getBeaniesForArea, getDiscoveryStats, type HidingSpot } from '$lib/stores/beanieHunt';
   import type { Beanie } from '$lib/stores/beanies';
   import BeanieGallery from '$lib/components/BeanieGallery.svelte';
+  import Passport from '$lib/components/Passport.svelte';
+  import { stampToy, getStampCount } from '$lib/stores/passport';
   import DialUpModem from '$lib/toys/DialUpModem.svelte';
   import KooshBall from '$lib/toys/KooshBall.svelte';
   import KidPix from '$lib/toys/KidPix.svelte';
@@ -39,7 +42,14 @@
   import AskJeeves from '$lib/toys/AskJeeves.svelte';
   import CarmenSandiego from '$lib/toys/CarmenSandiego.svelte';
   import Encarta from '$lib/toys/Encarta.svelte';
+  import Guestbook from '$lib/toys/Guestbook.svelte';
   import KonamiCode from '$lib/components/KonamiCode.svelte';
+  import ShelfSecrets from '$lib/components/ShelfSecrets.svelte';
+
+  // ShelfSecrets component reference
+  let shelfSecrets: ReturnType<typeof ShelfSecrets> | undefined = $state();
+  // Bumped when a secret combo is discovered, forcing shelf glow re-evaluation
+  let secretsVersion = $state(0);
 
   // CRT boot animation overlay
   let showCRTBoot = $state(true);
@@ -50,6 +60,10 @@
 
   // Which object is currently "open" (fullscreen experience)
   let activeObject = $state<string | null>(null);
+  let closing = $state(false);
+  // Keeps track of which toy to render during close animation
+  let displayObject = $state<string | null>(null);
+  let toyVisible = $state(false);
   let isLoading = $state(false);
   let loadingToy = $state<string | null>(null);
 
@@ -60,6 +74,8 @@
   };
   let focusedIndex = $state(0);
   let showGallery = $state(false);
+  let showPassport = $state(false);
+  let passportStampCount = $state(0);
   let discoveryStats = $state({ discovered: 0, total: 39 });
 
   // Shelf objects
@@ -91,6 +107,7 @@
     { id: 'askjeeves', name: 'Ask Jeeves', icon: '🎩', desc: 'Ask the butler' },
     { id: 'carmen', name: 'Carmen Sandiego', icon: '🔍', desc: 'Catch the thief' },
     { id: 'encarta', name: 'Encarta', icon: '📀', desc: 'CD-ROM knowledge' },
+    { id: 'guestbook', name: 'Guestbook', icon: '📝', desc: 'Sign here!' },
   ];
 
   // Single hiding spot behind the wood shelf
@@ -113,13 +130,30 @@
   }
 
   function openObject(id: string) {
+    // Check for secret combo before opening
+    if (shelfSecrets?.onToyClick(id)) {
+      // Combo matched - ShelfSecrets will call delayedOpen after reward
+      return;
+    }
+    doOpenObject(id);
+  }
+
+  function delayedOpen(id: string) {
+    doOpenObject(id);
+  }
+
+  function doOpenObject(id: string) {
     playSound('click');
     haptic('tap');
+    stampToy(id);
+    passportStampCount = getStampCount();
     isLoading = true;
     loadingToy = heavyToys[id] || null;
 
     setTimeout(() => {
       activeObject = id;
+      displayObject = id;
+      toyVisible = true;
       isLoading = false;
       loadingToy = null;
       if (browser) {
@@ -129,11 +163,20 @@
   }
 
   function closeObject() {
+    if (closing) return;
     playSound('whoosh', 0.3);
-    activeObject = null;
+    closing = true;
+    toyVisible = false;
+    // activeObject is cleared after outro animation completes via handleOutroEnd
     if (browser) {
       history.pushState({}, '', '/');
     }
+  }
+
+  function handleOutroEnd() {
+    activeObject = null;
+    displayObject = null;
+    closing = false;
   }
 
   let shareTooltip = $state('\u{1F517}');
@@ -169,13 +212,13 @@
   }
 
   function handleKeydown(e: KeyboardEvent) {
-    if (e.key === 'Escape' && activeObject) {
+    if (e.key === 'Escape' && (activeObject || closing)) {
       e.preventDefault();
-      closeObject();
+      if (!closing) closeObject();
       return;
     }
 
-    if (activeObject) return;
+    if (activeObject || closing) return;
 
     const currentItems = getCurrentPageItems();
 
@@ -224,8 +267,13 @@
   function handlePopState(e: PopStateEvent) {
     if (e.state?.object) {
       activeObject = e.state.object;
-    } else {
-      activeObject = null;
+      displayObject = e.state.object;
+      toyVisible = true;
+      closing = false;
+    } else if (activeObject) {
+      // Navigating back to shelf - trigger close animation
+      closing = true;
+      toyVisible = false;
     }
   }
 
@@ -239,7 +287,7 @@
   }
 
   function handleTouchEnd(e: TouchEvent) {
-    if (!activeObject) return;
+    if (!activeObject || closing) return;
 
     const touchEndX = e.changedTouches[0].clientX;
     const touchEndY = e.changedTouches[0].clientY;
@@ -274,6 +322,7 @@
     const beanies = getBeaniesForArea('shelf');
     shelfBeanie = beanies.get('behind-wood') || null;
     discoveryStats = getDiscoveryStats();
+    passportStampCount = getStampCount();
 
     // Check if first visit (no onboarding flag set)
     if (browser && !localStorage.getItem('bookfair_onboarded')) {
@@ -286,15 +335,24 @@
       const obj = shelfObjects.find(o => o.id === id);
       if (obj) {
         activeObject = id;
+        displayObject = id;
+        toyVisible = true;
       }
     }
 
     window.addEventListener('keydown', handleKeydown);
     window.addEventListener('popstate', handlePopState);
 
+    // Listen for secret combo discoveries to update shelf glow
+    function handleSecretDiscovered() {
+      secretsVersion++;
+    }
+    window.addEventListener('secret-discovered', handleSecretDiscovered);
+
     return () => {
       window.removeEventListener('keydown', handleKeydown);
       window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('secret-discovered', handleSecretDiscovered);
     };
   });
 </script>
@@ -309,10 +367,15 @@
     <header class="site-header">
       <h1 class="nes-text is-warning">The Book Fair</h1>
       <p class="subtitle">at the end of the internet</p>
-      <p class="tagline">27 interactive toys from the Scholastic shelf of your childhood. Click one, lose an hour.</p>
-      <button class="collection-btn" onclick={() => { playSound('collect', 0.3); showGallery = true; }}>
-        🎒 {discoveryStats.discovered}/{discoveryStats.total}
-      </button>
+      <p class="tagline">28 interactive toys from the Scholastic shelf of your childhood. Click one, lose an hour.</p>
+      <div class="header-buttons">
+        <button class="collection-btn" onclick={() => { playSound('collect', 0.3); showGallery = true; }}>
+          🎒 {discoveryStats.discovered}/{discoveryStats.total}
+        </button>
+        <button class="collection-btn passport-btn" onclick={() => { playSound('pop', 0.3); showPassport = true; }}>
+          📕 {passportStampCount}/27
+        </button>
+      </div>
     </header>
 
     <!-- The Shelf - with beanie hiding behind wood plank -->
@@ -349,6 +412,7 @@
             <button
               class="shelf-item nes-pointer toy-{obj.id}"
               class:focused={focusedIndex === i && !activeObject}
+              class:secret-glow={secretsVersion >= 0 && shelfSecrets?.isToyInDiscoveredCombo(obj.id)}
               onclick={() => openObject(obj.id)}
               title={obj.desc}
               tabindex={focusedIndex === i ? 0 : -1}
@@ -437,117 +501,123 @@
   {/if}
 {/if}
 
-{#if activeObject === 'modem'}
-  <div class="object-view" role="dialog" aria-label="Dial-Up Modem">
+<ToyTransition visible={toyVisible} onOutroEnd={handleOutroEnd}>
+  {#if displayObject === 'modem'}
+    <div class="object-view" role="dialog" aria-label="Dial-Up Modem">
     <DialUpModem onClose={closeObject} />
   </div>
-{:else if activeObject === 'koosh'}
+  {:else if displayObject === 'koosh'}
   <div class="object-view" role="dialog" aria-label="Koosh Ball">
     <KooshBall onClose={closeObject} />
   </div>
-{:else if activeObject === 'kidpix'}
+  {:else if displayObject === 'kidpix'}
   <div class="object-view" role="dialog" aria-label="Kid Pix">
     <KidPix onClose={closeObject} />
   </div>
-{:else if activeObject === 'pogs'}
+  {:else if displayObject === 'pogs'}
   <div class="object-view" role="dialog" aria-label="Pog Tube">
     <PogTube onClose={closeObject} />
   </div>
-{:else if activeObject === 'winamp'}
+  {:else if displayObject === 'winamp'}
   <div class="object-view" role="dialog" aria-label="Winamp">
     <Winamp onClose={closeObject} />
   </div>
-{:else if activeObject === 'aim'}
+  {:else if displayObject === 'aim'}
   <div class="object-view" role="dialog" aria-label="AIM">
     <AIM onClose={closeObject} />
   </div>
-{:else if activeObject === 'tamagotchi'}
+  {:else if displayObject === 'tamagotchi'}
   <div class="object-view" role="dialog" aria-label="Tamagotchi">
     <Tamagotchi onClose={closeObject} />
   </div>
-{:else if activeObject === 'magiceye'}
+  {:else if displayObject === 'magiceye'}
   <div class="object-view" role="dialog" aria-label="Magic Eye">
     <MagicEye onClose={closeObject} />
   </div>
-{:else if activeObject === 'clippy'}
+  {:else if displayObject === 'clippy'}
   <div class="object-view" role="dialog" aria-label="Clippy">
     <Clippy onClose={closeObject} />
   </div>
-{:else if activeObject === 'oregontrail'}
+  {:else if displayObject === 'oregontrail'}
   <div class="object-view" role="dialog" aria-label="Oregon Trail">
     <OregonTrail onClose={closeObject} />
   </div>
-{:else if activeObject === 'lisafrank'}
+  {:else if displayObject === 'lisafrank'}
   <div class="object-view" role="dialog" aria-label="Lisa Frank">
     <LisaFrank onClose={closeObject} />
   </div>
-{:else if activeObject === 'screensaver'}
+  {:else if displayObject === 'screensaver'}
   <div class="object-view" role="dialog" aria-label="Screensaver">
     <Screensaver onClose={closeObject} />
   </div>
-{:else if activeObject === 'fishtank'}
+  {:else if displayObject === 'fishtank'}
   <div class="object-view" role="dialog" aria-label="Fish Tank">
     <FishTank onClose={closeObject} />
   </div>
-{:else if activeObject === 'snake'}
+  {:else if displayObject === 'snake'}
   <div class="object-view" role="dialog" aria-label="Snake">
     <Snake onClose={closeObject} />
   </div>
-{:else if activeObject === 'slimevolleyball'}
+  {:else if displayObject === 'slimevolleyball'}
   <div class="object-view" role="dialog" aria-label="Slime Volleyball">
     <SlimeVolleyball onClose={closeObject} />
   </div>
-{:else if activeObject === 'mash'}
+  {:else if displayObject === 'mash'}
   <div class="object-view" role="dialog" aria-label="MASH">
     <MASH onClose={closeObject} />
   </div>
-{:else if activeObject === 'cootiecatcher'}
+  {:else if displayObject === 'cootiecatcher'}
   <div class="object-view" role="dialog" aria-label="Cootie Catcher">
     <CootieCatcher onClose={closeObject} />
   </div>
-{:else if activeObject === 'bados'}
+  {:else if displayObject === 'bados'}
   <div class="object-view" role="dialog" aria-label="BadOS XP">
     <BadOS onClose={closeObject} />
   </div>
-{:else if activeObject === 'bopit'}
+  {:else if displayObject === 'bopit'}
   <div class="object-view" role="dialog" aria-label="Bop It">
     <BopIt onClose={closeObject} />
   </div>
-{:else if activeObject === 'marblemaze'}
+  {:else if displayObject === 'marblemaze'}
   <div class="object-view" role="dialog" aria-label="Marble Maze">
     <MarbleMaze onClose={closeObject} />
   </div>
-{:else if activeObject === 'napster'}
+  {:else if displayObject === 'napster'}
   <div class="object-view" role="dialog" aria-label="LimeWire">
     <Napster onClose={closeObject} />
   </div>
-{:else if activeObject === 'litebrite'}
+  {:else if displayObject === 'litebrite'}
   <div class="object-view" role="dialog" aria-label="Lite-Brite">
     <LiteBrite onClose={closeObject} />
   </div>
-{:else if activeObject === 'scholastic'}
+  {:else if displayObject === 'scholastic'}
   <div class="object-view" role="dialog" aria-label="Scholastic Book Order">
     <ScholasticOrder onClose={closeObject} />
   </div>
-{:else if activeObject === 'furby'}
+  {:else if displayObject === 'furby'}
   <div class="object-view" role="dialog" aria-label="Furby">
     <Furby onClose={closeObject} />
   </div>
-{:else if activeObject === 'askjeeves'}
+  {:else if displayObject === 'askjeeves'}
   <div class="object-view" role="dialog" aria-label="Ask Jeeves">
     <AskJeeves onClose={closeObject} />
   </div>
-{:else if activeObject === 'carmen'}
+  {:else if displayObject === 'carmen'}
   <div class="object-view" role="dialog" aria-label="Carmen Sandiego">
     <CarmenSandiego onClose={closeObject} />
   </div>
-{:else if activeObject === 'encarta'}
+  {:else if displayObject === 'encarta'}
   <div class="object-view" role="dialog" aria-label="Encarta Encyclopedia">
     <Encarta onClose={closeObject} />
   </div>
-{/if}
+  {:else if displayObject === 'guestbook'}
+  <div class="object-view" role="dialog" aria-label="Guestbook">
+    <Guestbook onClose={closeObject} />
+  </div>
+  {/if}
+</ToyTransition>
 
-{#if activeObject}
+{#if activeObject && !closing}
   <button
     class="share-btn"
     onclick={copyShareLink}
@@ -561,8 +631,14 @@
   <KonamiCode />
 {/if}
 
+<ShelfSecrets bind:this={shelfSecrets} onDelayOpen={delayedOpen} />
+
 {#if showGallery}
   <BeanieGallery onClose={() => { showGallery = false; discoveryStats = getDiscoveryStats(); }} />
+{/if}
+
+{#if showPassport}
+  <Passport onClose={() => { showPassport = false; passportStampCount = getStampCount(); }} />
 {/if}
 
 {#if showCRTBoot}
@@ -621,17 +697,23 @@
     text-align: center;
   }
 
+  .header-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 0.6rem;
+  }
+
   .collection-btn {
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
-    margin-top: 0.6rem;
     padding: 0.3rem 0.7rem;
     background: rgba(255, 255, 255, 0.08);
     border: 2px solid #555;
     border-radius: 6px;
     color: #ccc;
-    font-family: 'Press Start 2P', monospace;
+    font-family: "Press Start 2P", monospace;
     font-size: 0.4rem;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -646,6 +728,12 @@
 
   .collection-btn:active {
     transform: scale(0.97);
+  }
+
+  .passport-btn:hover {
+    border-color: #c5a44e;
+    color: #c5a44e;
+    background: rgba(197, 164, 78, 0.1);
   }
 
   .shelf-section {
@@ -760,6 +848,17 @@
     transform: translateY(-4px) scale(1.02);
   }
 
+  .shelf-item.secret-glow {
+    box-shadow: 0 0 8px rgba(247, 213, 29, 0.3), inset 0 0 4px rgba(247, 213, 29, 0.1);
+    border-color: rgba(247, 213, 29, 0.25);
+    animation: shelfItemEnter 0.4s ease-out forwards, secret-shimmer 3s ease-in-out infinite;
+  }
+
+  @keyframes secret-shimmer {
+    0%, 100% { box-shadow: 0 0 8px rgba(247, 213, 29, 0.2), inset 0 0 4px rgba(247, 213, 29, 0.05); }
+    50% { box-shadow: 0 0 14px rgba(247, 213, 29, 0.4), inset 0 0 6px rgba(247, 213, 29, 0.15); }
+  }
+
   .item-icon {
     font-size: 2.5rem;
     line-height: 1;
@@ -837,16 +936,9 @@
   }
 
   .object-view {
-    position: fixed;
+    position: absolute;
     inset: 0;
-    z-index: 500;
     background: #1a1a2e;
-    animation: fadeIn 0.3s ease-out;
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
   }
 
   .share-btn {
@@ -1081,6 +1173,8 @@
       opacity: 1;
     }
 
+  /* Guestbook - paper flutter */
+  .toy-guestbook .item-icon { animation: idle-flutter 4s ease-in-out infinite; animation-delay: 1.0s; }
     .shelf-item .item-icon {
       animation: none !important;
       filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.5)) !important;

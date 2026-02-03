@@ -52,7 +52,6 @@
   <meta property="og:description" content="A shelf of interactive 90s toys at the end of the internet. 27 nostalgic experiences, from Tamagotchi to Kid Pix to Oregon Trail.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://thebookfair.thingvalla.tech">
-  <!-- TODO: Create an actual og-preview.png (1200x630) and place it in static/ -->
   <meta property="og:image" content="/og-preview.png">
 
   <!-- Twitter Card -->
