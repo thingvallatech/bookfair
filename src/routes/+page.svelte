@@ -460,7 +460,7 @@
               Built by <a href="https://github.com/sean" target="_blank" rel="noopener noreferrer">Sean</a>
             </span>
             <span class="footer-divider">|</span>
-            <a href="https://github.com/sean/fun" target="_blank" rel="noopener noreferrer" class="footer-link">
+            <a href="https://github.com/thingvallatech/bookfair" target="_blank" rel="noopener noreferrer" class="footer-link">
               View Source
             </a>
           </div>
