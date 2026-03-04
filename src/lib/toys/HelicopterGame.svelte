@@ -49,6 +49,15 @@
   let caveColumns: Array<{ top: number; bottom: number }> = [];
   let caveOffset = 0; // sub-pixel scroll offset
 
+  // Obstacles (rectangular blocks in the gap)
+  const OBSTACLE_SCORE_THRESHOLD = 50;
+  const OBSTACLE_SPAWN_INTERVAL = 80; // frames between spawns
+  const OBSTACLE_WIDTH = 20;
+  const OBSTACLE_MIN_HEIGHT = 20;
+  const OBSTACLE_MAX_HEIGHT = 50;
+  let obstacles: Array<{ x: number; y: number; w: number; h: number }> = [];
+  let lastObstacleFrame = 0;
+
   // Particles (engine trail)
   let particles: Array<{ x: number; y: number; life: number; vx: number; vy: number }> = [];
 
@@ -93,6 +102,8 @@
     frameCount = 0;
     score = 0;
     particles = [];
+    obstacles = [];
+    lastObstacleFrame = 0;
     shakeFrames = 0;
     initCave(canvas.width, h);
     gameState = 'playing';
@@ -102,7 +113,7 @@
   function die() {
     gameState = 'dead';
     shakeFrames = 12;
-    playSound('death', 0.5);
+    playSound('hit', 0.5);
     haptic('error');
     if (score > highScore) {
       highScore = score;
@@ -218,6 +229,19 @@
     ctx.stroke();
   }
 
+  function drawObstacles(ctx: CanvasRenderingContext2D) {
+    ctx.fillStyle = '#f59e0b';
+    for (const o of obstacles) {
+      ctx.fillRect(o.x, o.y, o.w, o.h);
+    }
+    // Edge highlight
+    ctx.strokeStyle = '#fbbf24';
+    ctx.lineWidth = 1;
+    for (const o of obstacles) {
+      ctx.strokeRect(o.x, o.y, o.w, o.h);
+    }
+  }
+
   function drawParticles(ctx: CanvasRenderingContext2D) {
     for (const p of particles) {
       const alpha = p.life / 20;
@@ -279,12 +303,53 @@
         return p.life > 0;
       });
 
-      // Collision check
+      // Whoosh sound while thrusting (throttled every 15 frames)
+      if (pressing && frameCount % 15 === 0) {
+        playSound('whoosh', 0.2);
+      }
+
+      // Obstacle spawning
+      if (score >= OBSTACLE_SCORE_THRESHOLD && frameCount - lastObstacleFrame >= OBSTACLE_SPAWN_INTERVAL) {
+        lastObstacleFrame = frameCount;
+        // Place obstacle in the gap at the right edge
+        const spawnColIdx = Math.floor((caveOffset + w) / 4);
+        const spawnCol = caveColumns[spawnColIdx];
+        if (spawnCol) {
+          const gapTop = spawnCol.top;
+          const gapBottom = spawnCol.bottom;
+          const gapH = gapBottom - gapTop;
+          const obstH = Math.min(OBSTACLE_MAX_HEIGHT, Math.max(OBSTACLE_MIN_HEIGHT, gapH * 0.3));
+          const obstY = gapTop + Math.random() * (gapH - obstH);
+          obstacles.push({ x: w + 10, y: obstY, w: OBSTACLE_WIDTH, h: obstH });
+        }
+      }
+
+      // Move obstacles
+      obstacles = obstacles.filter(o => {
+        o.x -= scrollSpeed;
+        return o.x + o.w > -20;
+      });
+
+      // Collision check — cave walls
       const colIndex = Math.floor((caveOffset + HELICOPTER_X) / 4);
       for (let dx = -Math.ceil(HELI_WIDTH / 8); dx <= Math.ceil(HELI_WIDTH / 8); dx++) {
         const col = caveColumns[colIndex + dx];
         if (col) {
           if (heliY - HELI_HEIGHT / 2 < col.top || heliY + HELI_HEIGHT / 2 > col.bottom) {
+            die();
+            break;
+          }
+        }
+      }
+
+      // Collision check — obstacles
+      if (gameState === 'playing') {
+        const hLeft = HELICOPTER_X - HELI_WIDTH / 2;
+        const hRight = HELICOPTER_X + HELI_WIDTH / 2;
+        const hTop = heliY - HELI_HEIGHT / 2;
+        const hBottom = heliY + HELI_HEIGHT / 2;
+        for (const o of obstacles) {
+          if (hRight > o.x && hLeft < o.x + o.w && hBottom > o.y && hTop < o.y + o.h) {
             die();
             break;
           }
@@ -317,6 +382,9 @@
 
     // Draw cave
     drawCave(ctx, w, h);
+
+    // Draw obstacles
+    drawObstacles(ctx);
 
     // Draw particles
     drawParticles(ctx);
