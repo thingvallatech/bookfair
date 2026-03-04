@@ -51,7 +51,7 @@
   <meta property="og:title" content="The Book Fair">
   <meta property="og:description" content="A shelf of interactive 90s toys at the end of the internet. 27 nostalgic experiences, from Tamagotchi to Kid Pix to Oregon Trail.">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://thebookfair.thingvalla.tech">
+  <meta property="og:url" content="https://bookfair-9sk8v.ondigitalocean.app">
   <meta property="og:image" content="/og-preview.png">
 
   <!-- Twitter Card -->
