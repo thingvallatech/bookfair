@@ -1,5 +1,6 @@
 <script lang="ts">
   import { browser } from '$app/environment';
+  import { untrack } from 'svelte';
   import type { Snippet } from 'svelte';
 
   interface Props {
@@ -36,7 +37,12 @@
   $effect(() => {
     if (!browser) return;
 
-    if (visible && phase === 'hidden') {
+    // Only track `visible` as a dependency — read `phase` inside untrack
+    // to prevent the effect from re-running (and canceling timeouts) when
+    // phase changes during the animation sequence.
+    const currentPhase = untrack(() => phase);
+
+    if (visible && currentPhase === 'hidden') {
       clearAllTimeouts();
 
       // Opening sequence
@@ -62,7 +68,7 @@
       return () => clearAllTimeouts();
     }
 
-    if (!visible && (phase === 'shown' || phase === 'reveal')) {
+    if (!visible && (currentPhase === 'shown' || currentPhase === 'reveal')) {
       clearAllTimeouts();
 
       // Closing sequence
