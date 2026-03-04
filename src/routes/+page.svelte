@@ -329,14 +329,22 @@
       needsOnboarding = true;
     }
 
-    // Check for hash on load
+    // Check for hash deep link on load
     if (browser && window.location.hash) {
       const id = window.location.hash.slice(1);
       const obj = shelfObjects.find(o => o.id === id);
       if (obj) {
+        // Skip CRT boot and onboarding for deep links — go straight to the toy
+        showCRTBoot = false;
+        needsOnboarding = false;
+        sessionStorage.setItem('crt-boot-played', '1');
+
+        stampToy(id);
+        passportStampCount = getStampCount();
         activeObject = id;
         displayObject = id;
         toyVisible = true;
+        history.replaceState({ object: id }, '', `#${id}`);
       }
     }
 
