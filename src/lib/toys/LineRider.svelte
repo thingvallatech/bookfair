@@ -26,6 +26,15 @@
   // Mode
   let mode = $state<'draw' | 'play'>('draw');
   let isDrawing = $state(false);
+  let eraserMode = $state(false);
+
+  // Sound throttle counters
+  let drawSoundCounter = 0;
+  let whooshFrameCounter = 0;
+  let wasOnGround = false;
+
+  // Auto-reset counter
+  let fellOffFrames = 0;
 
   // Lines: array of segments
   type Line = { x1: number; y1: number; x2: number; y2: number };
@@ -67,6 +76,9 @@
     cameraY = 0;
     targetCameraX = 0;
     targetCameraY = 0;
+    fellOffFrames = 0;
+    wasOnGround = false;
+    whooshFrameCounter = 0;
   }
 
   function toCanvas(clientX: number, clientY: number): { x: number; y: number } {
@@ -82,19 +94,50 @@
   function onPointerDown(e: PointerEvent) {
     if (mode !== 'draw') return;
     isDrawing = true;
+    drawSoundCounter = 0;
     const p = toCanvas(e.clientX, e.clientY);
-    currentDrawStart = p;
+
+    if (eraserMode) {
+      eraseNear(p.x, p.y);
+    } else {
+      currentDrawStart = p;
+    }
+  }
+
+  function eraseNear(px: number, py: number) {
+    const ERASE_RADIUS = 20;
+    const before = lines.length;
+    lines = lines.filter((seg) => {
+      const cp = closestPointOnSegment(px, py, seg);
+      const dx = px - cp.x;
+      const dy = py - cp.y;
+      return Math.sqrt(dx * dx + dy * dy) > ERASE_RADIUS;
+    });
+    if (lines.length < before) {
+      playSound('erase', 0.15);
+    }
   }
 
   function onPointerMove(e: PointerEvent) {
-    if (!isDrawing || mode !== 'draw' || !currentDrawStart) return;
+    if (!isDrawing || mode !== 'draw') return;
     const p = toCanvas(e.clientX, e.clientY);
+
+    if (eraserMode) {
+      eraseNear(p.x, p.y);
+      return;
+    }
+
+    if (!currentDrawStart) return;
     const dx = p.x - currentDrawStart.x;
     const dy = p.y - currentDrawStart.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
     if (dist > 8) {
       lines = [...lines, { x1: currentDrawStart.x, y1: currentDrawStart.y, x2: p.x, y2: p.y }];
       currentDrawStart = p;
+      drawSoundCounter++;
+      if (drawSoundCounter % 10 === 0) {
+        playSound('draw', 0.15);
+      }
     }
   }
 
@@ -124,8 +167,15 @@
         p.y += p.vy;
         p.angle += p.vx * 0.05;
       }
+      // Auto-reset after ~60 frames
+      fellOffFrames++;
+      if (fellOffFrames >= 60) {
+        resetRider();
+      }
       return;
     }
+
+    const prevOnGround = wasOnGround;
 
     // Gravity
     riderVY += RIDER_GRAVITY;
@@ -180,6 +230,19 @@
       }
     }
 
+    // Jump sound: transition from ground to airborne
+    if (prevOnGround && !riderOnGround) {
+      playSound('jump', 0.3);
+    }
+    wasOnGround = riderOnGround;
+
+    // Whoosh sound when moving fast
+    const speed = Math.sqrt(riderVX * riderVX + riderVY * riderVY);
+    whooshFrameCounter++;
+    if (speed > 8 && whooshFrameCounter % 30 === 0) {
+      playSound('whoosh', 0.2);
+    }
+
     if (!riderOnGround) {
       // Gradually return angle to 0 in air
       riderAngle *= 0.95;
@@ -188,6 +251,7 @@
     // Fall off screen check
     if (canvas && riderY > cameraY + canvas.height + 200) {
       riderFellOff = true;
+      fellOffFrames = 0;
       playSound('death', 0.4);
       // Create ragdoll parts
       sledParts = [
@@ -364,6 +428,7 @@
   function togglePlay() {
     if (mode === 'draw') {
       mode = 'play';
+      eraserMode = false;
       resetRider();
       playSound('powerup', 0.3);
     } else {
@@ -442,6 +507,13 @@
     </button>
 
     {#if mode === 'draw'}
+      <button
+        class="tool-btn nes-btn"
+        class:is-warning={eraserMode}
+        onclick={() => { eraserMode = !eraserMode; playSound('click', 0.2); }}
+      >
+        {eraserMode ? '✏ Draw' : '🧹 Eraser'}
+      </button>
       <button class="tool-btn nes-btn" onclick={undoLine} disabled={lines.length === 0}>
         ↩ Undo
       </button>
@@ -469,7 +541,8 @@
     onpointermove={onPointerMove}
     onpointerup={onPointerUp}
     onpointerleave={onPointerUp}
-    class:drawing={mode === 'draw'}
+    class:drawing={mode === 'draw' && !eraserMode}
+    class:erasing={mode === 'draw' && eraserMode}
   ></canvas>
 
   {#if mode === 'draw' && lines.length === 0}
@@ -479,17 +552,6 @@
     </div>
   {/if}
 
-  {#if mode === 'play' && riderFellOff}
-    <div class="fell-overlay">
-      <p>Rider wiped out!</p>
-      <button class="nes-btn is-primary" onclick={() => { resetRider(); }}>
-        Restart
-      </button>
-      <button class="nes-btn" onclick={() => { mode = 'draw'; cameraX = 0; cameraY = 0; }}>
-        Edit Track
-      </button>
-    </div>
-  {/if}
 </div>
 
 <style>
@@ -549,6 +611,10 @@
     cursor: crosshair;
   }
 
+  canvas.erasing {
+    cursor: not-allowed;
+  }
+
   .hint-overlay {
     position: absolute;
     top: 50%;
@@ -566,30 +632,4 @@
     color: #94a3b8;
   }
 
-  .fell-overlay {
-    position: absolute;
-    bottom: 40px;
-    left: 50%;
-    transform: translateX(-50%);
-    text-align: center;
-    background: rgba(15, 23, 42, 0.85);
-    padding: 16px 24px;
-    border-radius: 8px;
-    color: #fff;
-    z-index: 20;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    align-items: center;
-  }
-
-  .fell-overlay p {
-    margin: 0 0 8px;
-    font-size: 0.7rem;
-  }
-
-  .fell-overlay .nes-btn {
-    font-size: 0.5rem !important;
-    padding: 4px 12px !important;
-  }
 </style>
