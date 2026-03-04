@@ -43,6 +43,9 @@
   import CarmenSandiego from '$lib/toys/CarmenSandiego.svelte';
   import Encarta from '$lib/toys/Encarta.svelte';
   import Guestbook from '$lib/toys/Guestbook.svelte';
+  import HelicopterGame from '$lib/toys/HelicopterGame.svelte';
+  import LineRider from '$lib/toys/LineRider.svelte';
+  import StickBrawler from '$lib/toys/StickBrawler.svelte';
   import KonamiCode from '$lib/components/KonamiCode.svelte';
   import ShelfSecrets from '$lib/components/ShelfSecrets.svelte';
 
@@ -107,6 +110,9 @@
     { id: 'askjeeves', name: 'Ask Jeeves', icon: '🎩', desc: 'Ask the butler' },
     { id: 'carmen', name: 'Carmen Sandiego', icon: '🔍', desc: 'Catch the thief' },
     { id: 'encarta', name: 'Encarta', icon: '📀', desc: 'CD-ROM knowledge' },
+    { id: 'helicopter', name: 'Helicopter Game', icon: '🚁', desc: "Don't crash!" },
+    { id: 'linerider', name: 'Line Rider', icon: '🛷', desc: 'Draw the ride' },
+    { id: 'stickbrawl', name: 'Stick Brawler', icon: '🥊', desc: 'Xiao Xiao vibes' },
     { id: 'guestbook', name: 'Guestbook', icon: '📝', desc: 'Sign here!' },
   ];
 
@@ -617,6 +623,18 @@
   {:else if displayObject === 'encarta'}
   <div class="object-view" role="dialog" aria-label="Encarta Encyclopedia">
     <Encarta onClose={closeObject} />
+  </div>
+  {:else if displayObject === 'helicopter'}
+  <div class="object-view" role="dialog" aria-label="Helicopter Game">
+    <HelicopterGame onClose={closeObject} />
+  </div>
+  {:else if displayObject === 'linerider'}
+  <div class="object-view" role="dialog" aria-label="Line Rider">
+    <LineRider onClose={closeObject} />
+  </div>
+  {:else if displayObject === 'stickbrawl'}
+  <div class="object-view" role="dialog" aria-label="Stick Brawler">
+    <StickBrawler onClose={closeObject} />
   </div>
   {:else if displayObject === 'guestbook'}
   <div class="object-view" role="dialog" aria-label="Guestbook">
