@@ -1,0 +1,170 @@
+[
+  {
+    "id": "network-routing",
+    "name": "Network Routing",
+    "category": "routing",
+    "description": "Network routing involves determining optimal paths for data packets to travel from source to destination nodes across a dynamic graph of routers and links. The problem requires balancing multiple objectives including minimizing latency, maximizing throughput, avoiding congestion, and maintaining reliability under node and link failures. Routing must adapt continuously to changing network topology and traffic conditions without centralized coordination in large-scale networks. Distributed routing protocols must converge on loop-free paths quickly after topology changes while scaling to millions of nodes.",
+    "key_challenges": [
+      "Dynamic topology changes from node and link failures",
+      "Multi-objective optimization across latency, throughput, and reliability",
+      "Convergence speed after topology changes",
+      "Scalability to internet-scale networks with millions of nodes",
+      "Handling asymmetric link capacities and heterogeneous traffic demands",
+      "Avoiding routing loops during convergence"
+    ],
+    "mathematical_properties": {
+      "problem_class": "NP-hard for multi-constrained QoS routing",
+      "graph_theoretic": "Shortest path on weighted directed graphs; generalizes to multi-commodity flow",
+      "solution_space": "Exponential in number of paths; polynomial for single-objective with Dijkstra",
+      "objective": "Minimize cost function over path selection variables subject to capacity constraints"
+    },
+    "existing_bio_inspired": ["Ant Colony Optimization", "Bee-inspired routing", "Bacterial foraging"],
+    "benchmark_suite": ["CAIDA internet topology datasets", "Abilene network", "GÉANT topology", "random Waxman graphs"],
+    "evaluation_metrics": ["average path length", "convergence time", "packet delivery ratio", "load balancing fairness index", "adaptation speed to failures"],
+    "state_of_art_baseline": "OSPF/IS-IS for intra-domain; BGP for inter-domain; ECMP for load balancing"
+  },
+  {
+    "id": "traveling-salesman",
+    "name": "Traveling Salesman Problem",
+    "category": "optimization",
+    "description": "The Traveling Salesman Problem requires finding the shortest Hamiltonian cycle visiting all nodes in a weighted graph exactly once and returning to the origin. Despite its simple formulation, TSP is NP-hard and serves as a canonical benchmark for combinatorial optimization algorithms. Practical variants include asymmetric TSP with directed edge costs, time-windowed TSP with delivery constraints, and multi-depot vehicle routing extensions. Real-world applications span logistics, circuit board drilling, DNA sequencing, and telescope scheduling. The problem's difficulty stems from the super-exponential growth of the solution space combined with the absence of useful convex structure.",
+    "key_challenges": [
+      "Super-exponential solution space of n! permutations",
+      "No polynomial-time exact algorithm known",
+      "Highly multimodal objective landscape with many local optima",
+      "Scaling to instances with tens of thousands of cities",
+      "Maintaining solution quality under time constraints",
+      "Extending to practical variants with additional constraints"
+    ],
+    "mathematical_properties": {
+      "problem_class": "NP-hard; in APX for metric instances",
+      "graph_theoretic": "Minimum weight Hamiltonian cycle on complete weighted graph",
+      "solution_space": "n!/2 distinct tours for symmetric TSP",
+      "objective": "Minimize sum of edge weights in Hamiltonian cycle"
+    },
+    "existing_bio_inspired": ["Ant Colony Optimization", "Genetic Algorithms", "Particle Swarm Optimization", "Simulated Annealing"],
+    "benchmark_suite": ["TSPLIB", "National TSP instances", "Random Euclidean instances", "VLSI instances"],
+    "evaluation_metrics": ["tour length ratio to optimal", "computation time", "solution variance across runs", "scaling exponent with instance size"],
+    "state_of_art_baseline": "Concorde exact solver; LKH3 heuristic achieving within 0.1% of optimal on most benchmarks"
+  },
+  {
+    "id": "job-scheduling",
+    "name": "Job Scheduling",
+    "category": "scheduling",
+    "description": "Job scheduling problems involve assigning a set of tasks with resource requirements, precedence constraints, and deadlines to a set of machines or processors to optimize objectives such as makespan, total weighted completion time, or number of tardy jobs. The problem encompasses a family of variants from single-machine scheduling with known polynomial solutions to parallel machine and job shop scheduling problems that are NP-hard. Modern data center scheduling must handle thousands of concurrent jobs with heterogeneous resource demands across GPU, CPU, memory, and network dimensions. Dynamic online scheduling requires real-time decisions without foreknowledge of future job arrivals.",
+    "key_challenges": [
+      "NP-hardness of general multi-machine variants",
+      "Handling precedence constraints and resource dependencies",
+      "Online scheduling without future job arrival knowledge",
+      "Multi-dimensional resource packing across heterogeneous job types",
+      "Balancing fairness with efficiency objectives",
+      "Adapting to job failures and rescheduling requirements"
+    ],
+    "mathematical_properties": {
+      "problem_class": "NP-hard for most multi-machine variants; P for some single-machine variants",
+      "graph_theoretic": "Precedence constraints form DAG; scheduling maps to graph coloring and topological ordering",
+      "solution_space": "Exponential in job-machine assignments",
+      "objective": "Minimize makespan or weighted sum of completion times subject to precedence and resource constraints"
+    },
+    "existing_bio_inspired": ["Genetic Algorithms", "Ant Colony Optimization", "Particle Swarm Optimization", "Artificial Bee Colony"],
+    "benchmark_suite": ["OR-Library instances", "JSSP benchmarks by Fisher and Thompson", "Google cluster trace", "Alibaba cluster trace"],
+    "evaluation_metrics": ["makespan ratio to lower bound", "average job slowdown", "resource utilization", "fairness index", "scheduling overhead"],
+    "state_of_art_baseline": "List scheduling heuristics; branch and bound for small instances; FIFO and SJF for online variants"
+  },
+  {
+    "id": "distributed-consensus",
+    "name": "Distributed Consensus",
+    "category": "consensus",
+    "description": "Distributed consensus requires a set of nodes in a network to agree on a single value despite the possibility of node failures, message delays, and network partitions. The problem is foundational to distributed databases, blockchain systems, and fault-tolerant computing. The CAP theorem establishes fundamental trade-offs between consistency, availability, and partition tolerance that any consensus protocol must navigate. Byzantine consensus, where up to a fraction of nodes may behave arbitrarily maliciously, imposes stricter requirements on protocol design and requires at least 3f+1 nodes to tolerate f Byzantine failures. Practical systems must achieve consensus within bounded latency under realistic network conditions.",
+    "key_challenges": [
+      "FLP impossibility: no deterministic protocol guarantees termination in asynchronous networks",
+      "Byzantine fault tolerance requires 3f+1 nodes for f faulty nodes",
+      "CAP theorem trade-offs between consistency and availability under partitions",
+      "Leader election and view change under high message loss",
+      "Scaling consensus throughput to thousands of nodes",
+      "Preventing livelock and ensuring progress under adversarial timing"
+    ],
+    "mathematical_properties": {
+      "problem_class": "Computationally solvable with randomization; impossible deterministically in fully asynchronous model",
+      "graph_theoretic": "Requires network connectivity above fault tolerance threshold",
+      "solution_space": "Protocol state space exponential in number of nodes",
+      "objective": "Guarantee safety (agreement, validity) and liveness (termination) properties"
+    },
+    "existing_bio_inspired": ["Quorum sensing analogs", "Bee nest-site selection", "Firefly synchronization"],
+    "benchmark_suite": ["Jepsen test suite", "TLA+ model checking benchmarks", "PBFT original benchmarks", "Ethereum testnet performance data"],
+    "evaluation_metrics": ["latency to consensus", "throughput in decisions per second", "failure tolerance fraction", "message complexity", "safety violation rate"],
+    "state_of_art_baseline": "Raft for crash fault tolerance; PBFT and Tendermint for Byzantine tolerance; HotStuff for leader-based BFT"
+  },
+  {
+    "id": "function-optimization",
+    "name": "Continuous Function Optimization",
+    "category": "optimization",
+    "description": "Continuous function optimization involves finding the global minimum or maximum of a real-valued objective function over a continuous search space, typically in high dimensions. The problem encompasses both black-box optimization where only function evaluations are available and white-box optimization where gradient information is accessible. Many real-world engineering design, hyperparameter tuning, and scientific calibration problems reduce to continuous optimization with expensive-to-evaluate objectives. Multimodal functions with many local optima require global search strategies that balance exploration of the search space with exploitation of promising regions.",
+    "key_challenges": [
+      "Curse of dimensionality: search space volume grows exponentially with dimensions",
+      "Multimodal functions with exponentially many local optima",
+      "Expensive function evaluations limiting number of feasible iterations",
+      "Noisy function evaluations requiring robust estimation",
+      "Unknown gradient information in black-box settings",
+      "Balancing exploration and exploitation in limited evaluation budget"
+    ],
+    "mathematical_properties": {
+      "problem_class": "NP-hard for general non-convex functions; P for convex functions",
+      "topological": "Solution landscape characterized by Morse theory; difficulty scales with number of saddle points",
+      "solution_space": "Continuous real-valued search space R^n",
+      "objective": "Find x* = argmin f(x) for potentially non-convex f: R^n to R"
+    },
+    "existing_bio_inspired": ["Differential Evolution", "Particle Swarm Optimization", "CMA-ES", "Firefly Algorithm", "Bat Algorithm"],
+    "benchmark_suite": ["BBOB/COCO benchmark suite", "CEC competition functions", "Rastrigin, Ackley, Rosenbrock functions", "Bayesian optimization benchmarks"],
+    "evaluation_metrics": ["convergence rate to optimum", "final solution quality", "function evaluation count to target", "robustness across random seeds", "scaling with dimensionality"],
+    "state_of_art_baseline": "CMA-ES for medium dimensions; L-BFGS-B for gradient-available cases; Bayesian optimization for expensive evaluations"
+  },
+  {
+    "id": "data-clustering",
+    "name": "Data Clustering",
+    "category": "clustering",
+    "description": "Data clustering partitions a dataset into groups such that intra-cluster similarity is maximized and inter-cluster similarity is minimized, without using predefined class labels. The problem is fundamental to unsupervised learning with applications in customer segmentation, document organization, anomaly detection, and bioinformatics. Cluster structure can take arbitrary shapes including convex blobs, rings, filaments, and hierarchical nested structures, requiring algorithms to adapt to unknown geometry. The number of clusters is typically unknown a priori and must be inferred from the data. Scalability to high-dimensional datasets with millions of points presents additional challenges.",
+    "key_challenges": [
+      "Unknown number of clusters requiring automatic determination",
+      "Arbitrary cluster shapes violating convexity assumptions of k-means",
+      "High-dimensional data suffering from curse of dimensionality in distance metrics",
+      "Scalability to millions of data points",
+      "Sensitivity to initialization and local minima",
+      "Defining appropriate similarity metrics for mixed data types"
+    ],
+    "mathematical_properties": {
+      "problem_class": "NP-hard for k-means with k >= 2; heuristic solutions dominate practice",
+      "information_theoretic": "Related to mutual information maximization between cluster assignments and data",
+      "solution_space": "Exponential in number of possible partitions: Bell number B(n)",
+      "objective": "Minimize within-cluster variance or maximize between-cluster separation under chosen metric"
+    },
+    "existing_bio_inspired": ["Ant Colony clustering", "Particle Swarm clustering", "Artificial Bee Colony clustering", "Firefly-based clustering"],
+    "benchmark_suite": ["UCI ML Repository datasets", "MNIST and CIFAR clustering", "Synthetic Gaussian mixtures", "Real-world gene expression datasets"],
+    "evaluation_metrics": ["adjusted Rand index", "normalized mutual information", "silhouette score", "Davies-Bouldin index", "computational time scaling"],
+    "state_of_art_baseline": "k-means++ for spherical clusters; DBSCAN for arbitrary shapes; Gaussian Mixture Models for probabilistic clustering"
+  },
+  {
+    "id": "resource-allocation",
+    "name": "Resource Allocation",
+    "category": "allocation",
+    "description": "Resource allocation problems involve distributing limited resources among competing agents or tasks to optimize system-wide objectives such as total utility, fairness, or efficiency. The problem arises in cloud computing, wireless spectrum assignment, supply chain management, and financial portfolio optimization. Multi-agent resource allocation must often satisfy individual rationality and incentive compatibility constraints when agents have private utility information. Dynamic variants require real-time reallocation as resource availability and demand fluctuate. The combination of integer constraints, multiple objectives, and strategic agent behavior makes general resource allocation computationally intractable.",
+    "key_challenges": [
+      "Integer constraints making exact optimization NP-hard for combinatorial variants",
+      "Multiple competing objectives including efficiency, fairness, and revenue",
+      "Strategic agents with private utility information requiring mechanism design",
+      "Dynamic demand and supply requiring real-time adaptive allocation",
+      "Scalability to thousands of resources and agents",
+      "Ensuring envy-freeness and proportionality in fair division variants"
+    ],
+    "mathematical_properties": {
+      "problem_class": "NP-hard for combinatorial auction variants; polynomial relaxations often used",
+      "game_theoretic": "Nash equilibrium existence guaranteed in compact convex strategy spaces",
+      "solution_space": "Combinatorial allocation space exponential in resources times agents",
+      "objective": "Maximize social welfare or Nash social welfare subject to resource capacity and feasibility constraints"
+    },
+    "existing_bio_inspired": ["Ant Colony Optimization for assignment", "Genetic Algorithms for portfolio optimization", "Particle Swarm for cloud resource scheduling", "Honeybee foraging for load balancing"],
+    "benchmark_suite": ["MIPLIB combinatorial optimization instances", "Cloud workload traces", "Spectrum allocation synthetic benchmarks", "Supply chain network instances"],
+    "evaluation_metrics": ["social welfare ratio to optimal", "fairness index", "resource utilization rate", "computation time", "adaptability to demand changes"],
+    "state_of_art_baseline": "Linear programming relaxation with branch and bound; greedy approximation algorithms with provable guarantees; auction mechanisms for strategic settings"
+  }
+]

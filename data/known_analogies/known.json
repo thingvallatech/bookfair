@@ -1,0 +1,79 @@
+[
+  {
+    "algorithm_name": "Ant Colony Optimization (ACO)",
+    "biological_source": "Ant foraging behavior",
+    "core_mechanism": "Agents deposit pheromone on paths proportional to solution quality. Pheromone evaporates over time. Future agents probabilistically choose paths based on pheromone intensity, creating positive feedback for good solutions.",
+    "target_problems": ["routing", "TSP", "scheduling", "assignment"],
+    "key_operators": ["pheromone_deposit", "pheromone_evaporation", "probabilistic_path_selection", "stigmergic_communication"]
+  },
+  {
+    "algorithm_name": "Particle Swarm Optimization (PSO)",
+    "biological_source": "Bird flocking / fish schooling",
+    "core_mechanism": "Particles move through solution space with velocity influenced by personal best position and global/neighborhood best position. Social and cognitive components balance exploration and exploitation.",
+    "target_problems": ["continuous_optimization", "neural_network_training", "feature_selection"],
+    "key_operators": ["velocity_update", "personal_best_tracking", "global_best_tracking", "inertia_weight"]
+  },
+  {
+    "algorithm_name": "Genetic Algorithm (GA)",
+    "biological_source": "Darwinian natural selection and genetics",
+    "core_mechanism": "Population of candidate solutions evolves through selection (fitness-proportional survival), crossover (recombination of parent solutions), and mutation (random perturbation). Fittest individuals are more likely to reproduce.",
+    "target_problems": ["combinatorial_optimization", "scheduling", "design", "general_optimization"],
+    "key_operators": ["selection", "crossover", "mutation", "fitness_evaluation", "elitism"]
+  },
+  {
+    "algorithm_name": "Differential Evolution (DE)",
+    "biological_source": "Genetic evolution with emphasis on differential mutation",
+    "core_mechanism": "Mutation creates trial vectors by adding weighted difference of randomly selected population members to a base vector. Crossover mixes trial with target. Selection keeps better of trial/target.",
+    "target_problems": ["continuous_optimization", "parameter_tuning", "engineering_design"],
+    "key_operators": ["differential_mutation", "binomial_crossover", "greedy_selection", "scaling_factor"]
+  },
+  {
+    "algorithm_name": "Artificial Bee Colony (ABC)",
+    "biological_source": "Honeybee foraging behavior",
+    "core_mechanism": "Three bee roles: employed bees exploit known food sources, onlooker bees choose sources based on quality reports (waggle dance), scout bees abandon poor sources and explore randomly.",
+    "target_problems": ["continuous_optimization", "combinatorial_optimization", "clustering"],
+    "key_operators": ["employed_bee_search", "onlooker_selection", "scout_random_search", "food_source_abandonment"]
+  },
+  {
+    "algorithm_name": "Firefly Algorithm",
+    "biological_source": "Firefly bioluminescence attraction",
+    "core_mechanism": "Fireflies are attracted to brighter (fitter) fireflies. Attraction strength decreases with distance (light absorption). Less bright fireflies move toward brighter ones. Random movement when no brighter neighbor.",
+    "target_problems": ["continuous_optimization", "multimodal_optimization"],
+    "key_operators": ["brightness_comparison", "distance_based_attraction", "light_absorption_coefficient", "random_walk"]
+  },
+  {
+    "algorithm_name": "Bat Algorithm",
+    "biological_source": "Bat echolocation behavior",
+    "core_mechanism": "Virtual bats fly with varying frequency, velocity, and loudness. Frequency controls search step size. Loudness decreases and pulse emission rate increases as bat converges on prey (solution).",
+    "target_problems": ["continuous_optimization", "engineering_optimization"],
+    "key_operators": ["frequency_tuning", "velocity_update", "loudness_adjustment", "pulse_rate_modulation"]
+  },
+  {
+    "algorithm_name": "Cuckoo Search",
+    "biological_source": "Cuckoo brood parasitism + Levy flights",
+    "core_mechanism": "Cuckoos lay eggs (solutions) in host nests. If discovered (probability pa), host abandons nest and builds new one (random solution). Best nests carry over. Levy flights provide efficient random search.",
+    "target_problems": ["continuous_optimization", "engineering_design", "scheduling"],
+    "key_operators": ["levy_flight", "egg_laying", "discovery_probability", "nest_abandonment"]
+  },
+  {
+    "algorithm_name": "Grey Wolf Optimizer (GWO)",
+    "biological_source": "Grey wolf pack hunting hierarchy",
+    "core_mechanism": "Wolf hierarchy: alpha (best solution), beta (second best), delta (third best), omega (rest). Hunting phases: encircling prey, hunting (position update toward alpha/beta/delta), attacking (exploitation via shrinking encirclement).",
+    "target_problems": ["continuous_optimization", "feature_selection", "engineering_design"],
+    "key_operators": ["hierarchy_ranking", "encircling_prey", "hunting_position_update", "attack_exploration_balance"]
+  },
+  {
+    "algorithm_name": "Whale Optimization Algorithm (WOA)",
+    "biological_source": "Humpback whale bubble-net feeding",
+    "core_mechanism": "Whales encircle prey and create shrinking circles or spiral-shaped paths (bubble-net). Algorithm alternates between encircling best solution (shrinking circle) and spiral position update. Random whale chosen for exploration.",
+    "target_problems": ["continuous_optimization", "structural_optimization"],
+    "key_operators": ["shrinking_encircling", "spiral_update", "random_search_exploration", "bubble_net_mechanism"]
+  },
+  {
+    "algorithm_name": "Artificial Immune System (AIS)",
+    "biological_source": "Vertebrate adaptive immune system",
+    "core_mechanism": "Clonal selection: antibodies (solutions) that recognize antigens (problems) are cloned proportionally to affinity. Clones undergo hypermutation (inversely proportional to affinity). Negative selection removes self-reactive antibodies.",
+    "target_problems": ["optimization", "anomaly_detection", "pattern_recognition", "classification"],
+    "key_operators": ["clonal_selection", "affinity_maturation", "hypermutation", "negative_selection", "memory_cells"]
+  }
+]

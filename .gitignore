@@ -25,3 +25,19 @@ vite.config.ts.timestamp-*
 
 # Worktrees
 .worktrees/
+
+# BioSpark Backend
+backend/__pycache__/
+backend/**/__pycache__/
+backend/.venv/
+backend/*.egg-info/
+*.pyc
+
+# BioSpark Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# Modal
+modal_compute/__pycache__/
+modal_compute/**/__pycache__/
