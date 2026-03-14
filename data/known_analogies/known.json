@@ -1,79 +1,79 @@
 [
   {
-    "algorithm_name": "Ant Colony Optimization (ACO)",
-    "biological_source": "Ant foraging behavior",
-    "core_mechanism": "Agents deposit pheromone on paths proportional to solution quality. Pheromone evaporates over time. Future agents probabilistically choose paths based on pheromone intensity, creating positive feedback for good solutions.",
-    "target_problems": ["routing", "TSP", "scheduling", "assignment"],
-    "key_operators": ["pheromone_deposit", "pheromone_evaporation", "probabilistic_path_selection", "stigmergic_communication"]
+    "algorithm_name": "Ant Colony Optimization",
+    "biological_source": "Ant pheromone trail foraging in species such as Atta and Solenopsis",
+    "core_mechanism": "Artificial ants construct candidate solutions by traversing a graph and depositing synthetic pheromone proportional to solution quality. Pheromone evaporates over time, preventing premature convergence on suboptimal paths. Subsequent ants use pheromone concentrations as a probabilistic biasing signal, creating a positive feedback loop that amplifies better solutions. The interplay of pheromone reinforcement and evaporation implements an adaptive memory that balances exploitation of known good solutions with exploration of novel paths.",
+    "target_problems": ["network-routing", "traveling-salesman", "job-scheduling", "resource-allocation"],
+    "key_operators": ["pheromone_deposit", "pheromone_evaporation", "probabilistic_path_selection", "heuristic_desirability_weighting", "ant_solution_construction"]
   },
   {
-    "algorithm_name": "Particle Swarm Optimization (PSO)",
-    "biological_source": "Bird flocking / fish schooling",
-    "core_mechanism": "Particles move through solution space with velocity influenced by personal best position and global/neighborhood best position. Social and cognitive components balance exploration and exploitation.",
-    "target_problems": ["continuous_optimization", "neural_network_training", "feature_selection"],
-    "key_operators": ["velocity_update", "personal_best_tracking", "global_best_tracking", "inertia_weight"]
+    "algorithm_name": "Particle Swarm Optimization",
+    "biological_source": "Bird flocking and fish schooling social movement dynamics",
+    "core_mechanism": "A population of particles moves through a continuous solution space, each maintaining a velocity vector updated each iteration based on three components: inertia carrying previous velocity forward, a cognitive term attracting the particle toward its personal best known position, and a social term attracting it toward the global best position found by any particle. This velocity update rule balances individual memory of promising regions with collective knowledge sharing. Convergence behavior and exploration-exploitation trade-off are controlled by inertia weight and acceleration coefficients.",
+    "target_problems": ["function-optimization", "data-clustering", "resource-allocation"],
+    "key_operators": ["velocity_update", "personal_best_update", "global_best_update", "inertia_weighting", "constriction_coefficient"]
   },
   {
-    "algorithm_name": "Genetic Algorithm (GA)",
-    "biological_source": "Darwinian natural selection and genetics",
-    "core_mechanism": "Population of candidate solutions evolves through selection (fitness-proportional survival), crossover (recombination of parent solutions), and mutation (random perturbation). Fittest individuals are more likely to reproduce.",
-    "target_problems": ["combinatorial_optimization", "scheduling", "design", "general_optimization"],
-    "key_operators": ["selection", "crossover", "mutation", "fitness_evaluation", "elitism"]
+    "algorithm_name": "Genetic Algorithm",
+    "biological_source": "Darwinian natural selection, genetic recombination, and mutation in biological evolution",
+    "core_mechanism": "A population of encoded candidate solutions evolves across generations through three operators modeled on biological genetics. Selection preferentially reproduces fitter individuals using mechanisms such as tournament selection or fitness-proportional roulette wheel sampling. Crossover combines genetic material from two parent solutions to produce offspring that inherit characteristics from both, implementing recombination of building blocks. Mutation introduces small random perturbations to maintain diversity and enable escape from local optima. Elitism preserves the best solutions across generations, ensuring monotonic improvement in population best.",
+    "target_problems": ["traveling-salesman", "job-scheduling", "resource-allocation", "function-optimization"],
+    "key_operators": ["tournament_selection", "single_point_crossover", "uniform_crossover", "bit_flip_mutation", "elitism_preservation"]
   },
   {
-    "algorithm_name": "Differential Evolution (DE)",
-    "biological_source": "Genetic evolution with emphasis on differential mutation",
-    "core_mechanism": "Mutation creates trial vectors by adding weighted difference of randomly selected population members to a base vector. Crossover mixes trial with target. Selection keeps better of trial/target.",
-    "target_problems": ["continuous_optimization", "parameter_tuning", "engineering_design"],
-    "key_operators": ["differential_mutation", "binomial_crossover", "greedy_selection", "scaling_factor"]
+    "algorithm_name": "Differential Evolution",
+    "biological_source": "Genetic evolution with a vector-based differential mutation operator",
+    "core_mechanism": "Differential Evolution operates on a population of real-valued vectors. For each target vector, three distinct population members are selected at random and a mutant vector is formed by adding a scaled difference between two of them to the third. A trial vector is created by mixing the mutant with the target via binomial crossover controlled by a crossover rate parameter. Greedy selection retains whichever of the target or trial vector has lower objective value, ensuring monotonic improvement of each individual. The differential mutation operator implicitly self-adapts step size to the current population spread.",
+    "target_problems": ["function-optimization", "resource-allocation"],
+    "key_operators": ["differential_mutation", "binomial_crossover", "greedy_selection", "scaling_factor_F", "crossover_rate_CR"]
   },
   {
-    "algorithm_name": "Artificial Bee Colony (ABC)",
-    "biological_source": "Honeybee foraging behavior",
-    "core_mechanism": "Three bee roles: employed bees exploit known food sources, onlooker bees choose sources based on quality reports (waggle dance), scout bees abandon poor sources and explore randomly.",
-    "target_problems": ["continuous_optimization", "combinatorial_optimization", "clustering"],
-    "key_operators": ["employed_bee_search", "onlooker_selection", "scout_random_search", "food_source_abandonment"]
+    "algorithm_name": "Artificial Bee Colony",
+    "biological_source": "Honeybee waggle dance foraging and scout recruitment in Apis mellifera",
+    "core_mechanism": "The algorithm partitions artificial bees into three functional roles mirroring honeybee colony organization. Employed bees exploit known food sources by generating neighbor solutions via local search and updating their source if improved. Onlooker bees observe employed bee fitness reports and allocate search effort proportionally to source quality, mirroring waggle dance recruitment. Scout bees replace abandoned sources with randomly initialized new solutions when a source fails to improve after a limit number of trials, implementing exploration restart. The three-phase cycle balances exploitation depth, quality-proportional allocation, and random exploration.",
+    "target_problems": ["function-optimization", "data-clustering", "job-scheduling"],
+    "key_operators": ["employed_bee_neighbor_search", "roulette_wheel_onlooker_selection", "scout_random_initialization", "abandonment_limit", "greedy_local_update"]
   },
   {
     "algorithm_name": "Firefly Algorithm",
-    "biological_source": "Firefly bioluminescence attraction",
-    "core_mechanism": "Fireflies are attracted to brighter (fitter) fireflies. Attraction strength decreases with distance (light absorption). Less bright fireflies move toward brighter ones. Random movement when no brighter neighbor.",
-    "target_problems": ["continuous_optimization", "multimodal_optimization"],
-    "key_operators": ["brightness_comparison", "distance_based_attraction", "light_absorption_coefficient", "random_walk"]
+    "biological_source": "Bioluminescent attraction and mate signaling in fireflies",
+    "core_mechanism": "Each firefly represents a candidate solution with brightness proportional to objective value. Fireflies are attracted to brighter conspecifics, with attraction strength decreasing with the square of distance due to a light absorption coefficient. A less bright firefly moves toward a brighter one by a step size modulated by the attraction factor at their current distance. When no brighter firefly exists within range, the firefly performs a random walk for exploration. The absorption coefficient controls the balance between local exploitation and global exploration, effectively tuning neighborhood size.",
+    "target_problems": ["function-optimization", "data-clustering"],
+    "key_operators": ["brightness_fitness_mapping", "distance_dependent_attraction", "light_absorption_coefficient", "random_walk_exploration", "pairwise_comparison"]
   },
   {
     "algorithm_name": "Bat Algorithm",
-    "biological_source": "Bat echolocation behavior",
-    "core_mechanism": "Virtual bats fly with varying frequency, velocity, and loudness. Frequency controls search step size. Loudness decreases and pulse emission rate increases as bat converges on prey (solution).",
-    "target_problems": ["continuous_optimization", "engineering_optimization"],
-    "key_operators": ["frequency_tuning", "velocity_update", "loudness_adjustment", "pulse_rate_modulation"]
+    "biological_source": "Frequency-modulated echolocation and adaptive pulse emission in echolocating bats",
+    "core_mechanism": "Virtual bats fly through solution space emitting echolocation pulses with controllable frequency, loudness, and pulse emission rate. Each bat moves with a velocity influenced by both its own best known position and the current global best, analogous to PSO but modulated by frequency. As a bat approaches a good solution, its loudness decreases and pulse emission rate increases, modeling the terminal buzz phase of echolocating bats closing on prey. This adaptive modulation concentrates search in promising regions while maintaining global search capability through random frequency perturbation.",
+    "target_problems": ["function-optimization", "resource-allocation"],
+    "key_operators": ["frequency_modulation", "velocity_update", "loudness_reduction", "pulse_rate_increase", "local_random_walk"]
   },
   {
     "algorithm_name": "Cuckoo Search",
-    "biological_source": "Cuckoo brood parasitism + Levy flights",
-    "core_mechanism": "Cuckoos lay eggs (solutions) in host nests. If discovered (probability pa), host abandons nest and builds new one (random solution). Best nests carry over. Levy flights provide efficient random search.",
-    "target_problems": ["continuous_optimization", "engineering_design", "scheduling"],
-    "key_operators": ["levy_flight", "egg_laying", "discovery_probability", "nest_abandonment"]
+    "biological_source": "Obligate brood parasitism in cuckoo species combined with Levy flight foraging",
+    "core_mechanism": "Candidate solutions are represented as eggs in host nests. New solutions are generated by Levy flights from existing solutions, providing heavy-tailed step size distribution that balances local exploitation with occasional long-distance jumps. Each generated egg may be discovered by the host with a fixed probability, triggering abandonment of that nest and replacement with a new random solution. The best fraction of nests carrying the highest-quality eggs are preserved across iterations. The combination of Levy flight exploration and probabilistic nest abandonment provides robust global search properties.",
+    "target_problems": ["function-optimization", "job-scheduling"],
+    "key_operators": ["levy_flight_step", "nest_abandonment_probability", "random_nest_replacement", "best_nest_preservation", "fitness_comparison"]
   },
   {
-    "algorithm_name": "Grey Wolf Optimizer (GWO)",
-    "biological_source": "Grey wolf pack hunting hierarchy",
-    "core_mechanism": "Wolf hierarchy: alpha (best solution), beta (second best), delta (third best), omega (rest). Hunting phases: encircling prey, hunting (position update toward alpha/beta/delta), attacking (exploitation via shrinking encirclement).",
-    "target_problems": ["continuous_optimization", "feature_selection", "engineering_design"],
-    "key_operators": ["hierarchy_ranking", "encircling_prey", "hunting_position_update", "attack_exploration_balance"]
+    "algorithm_name": "Grey Wolf Optimizer",
+    "biological_source": "Hierarchical pack hunting behavior and social dominance structure of grey wolves",
+    "core_mechanism": "The algorithm maintains a strict social hierarchy mapping to solution quality: the alpha wolf represents the best solution, beta the second best, and delta the third, with all other wolves designated omega. Hunting is modeled in three phases. In encircling, wolves update their positions relative to the prey location estimated as the weighted average of alpha, beta, and delta positions. In hunting, all three hierarchy leaders guide omega wolves by providing independent position estimates. In attacking, a linearly decreasing parameter drives a transition from global exploration to local exploitation as iterations progress.",
+    "target_problems": ["function-optimization", "resource-allocation"],
+    "key_operators": ["alpha_beta_delta_selection", "encircling_coefficient_update", "position_update_from_hierarchy", "linear_convergence_parameter", "random_perturbation"]
   },
   {
-    "algorithm_name": "Whale Optimization Algorithm (WOA)",
-    "biological_source": "Humpback whale bubble-net feeding",
-    "core_mechanism": "Whales encircle prey and create shrinking circles or spiral-shaped paths (bubble-net). Algorithm alternates between encircling best solution (shrinking circle) and spiral position update. Random whale chosen for exploration.",
-    "target_problems": ["continuous_optimization", "structural_optimization"],
-    "key_operators": ["shrinking_encircling", "spiral_update", "random_search_exploration", "bubble_net_mechanism"]
+    "algorithm_name": "Whale Optimization Algorithm",
+    "biological_source": "Humpback whale bubble-net cooperative hunting strategy",
+    "core_mechanism": "The algorithm models two hunting behaviors of humpback whales. In the shrinking encirclement mechanism, whales update their position by moving toward the current best solution with a linearly decreasing step size, converging on prey over iterations. In the spiral update mechanism, whales move along a logarithmic spiral path centered on the best solution, modeling the helical bubble-net path. Each iteration randomly selects one of these two mechanisms with equal probability. When the encirclement coefficient exceeds a threshold, a random whale position is used instead of the best, implementing exploration. The transition between encirclement and spiral implements exploration-exploitation balance.",
+    "target_problems": ["function-optimization", "resource-allocation"],
+    "key_operators": ["shrinking_encirclement", "spiral_position_update", "random_exploration_switch", "convergence_factor_reduction", "best_solution_tracking"]
   },
   {
-    "algorithm_name": "Artificial Immune System (AIS)",
-    "biological_source": "Vertebrate adaptive immune system",
-    "core_mechanism": "Clonal selection: antibodies (solutions) that recognize antigens (problems) are cloned proportionally to affinity. Clones undergo hypermutation (inversely proportional to affinity). Negative selection removes self-reactive antibodies.",
-    "target_problems": ["optimization", "anomaly_detection", "pattern_recognition", "classification"],
-    "key_operators": ["clonal_selection", "affinity_maturation", "hypermutation", "negative_selection", "memory_cells"]
+    "algorithm_name": "Artificial Immune System",
+    "biological_source": "Vertebrate adaptive immune system clonal selection and affinity maturation",
+    "core_mechanism": "Candidate solutions are treated as antibodies with affinity proportional to their objective quality against an antigen representing the problem. The clonal selection operator proliferates high-affinity antibodies proportionally to their fitness, biasing population composition toward good regions. Clones undergo hypermutation at a rate inversely proportional to their affinity, so near-optimal antibodies are refined with small perturbations while poor ones undergo large jumps. Negative selection removes redundant antibodies maintaining population diversity. Memory cells preserve the best antibodies found, enabling fast response to similar problems in subsequent runs.",
+    "target_problems": ["function-optimization", "data-clustering", "network-routing"],
+    "key_operators": ["clonal_selection", "affinity_proportional_cloning", "inverse_affinity_hypermutation", "negative_selection", "memory_cell_update"]
   }
 ]
