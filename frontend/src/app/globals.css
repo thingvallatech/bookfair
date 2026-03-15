@@ -32,7 +32,7 @@
   }
 
   body {
-    font-family: var(--font-inter), system-ui, sans-serif;
+    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -64,11 +64,11 @@
 
 @layer components {
   .card {
-    @apply bg-surface border border-white/8 rounded-xl p-6;
+    @apply bg-surface border border-[rgba(255,255,255,0.08)] rounded-xl p-6;
   }
 
   .card-hover {
-    @apply card transition-all duration-200 hover:border-primary/30 hover:shadow-teal-glow;
+    @apply card transition-all duration-200 hover:border-primary-500/30 hover:shadow-teal-glow;
   }
 
   .btn-primary {
@@ -76,7 +76,7 @@
   }
 
   .btn-secondary {
-    @apply px-4 py-2 bg-surface-secondary hover:bg-surface-tertiary text-gray-300 hover:text-white rounded-lg font-medium transition-colors duration-150 border border-white/10 focus:outline-none focus:ring-2 focus:ring-white/20 focus:ring-offset-2 focus:ring-offset-background;
+    @apply px-4 py-2 bg-surface-secondary hover:bg-surface-tertiary text-gray-300 hover:text-white rounded-lg font-medium transition-colors duration-150 border border-[rgba(255,255,255,0.1)] focus:outline-none focus:ring-2 focus:ring-[rgba(255,255,255,0.2)] focus:ring-offset-2 focus:ring-offset-background;
   }
 
   .badge {
@@ -112,7 +112,7 @@
   }
 
   .input-field {
-    @apply w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-600 transition-colors duration-150;
+    @apply w-full bg-surface border border-[rgba(255,255,255,0.1)] rounded-lg px-3 py-2 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-600 transition-colors duration-150;
   }
 
   .select-field {
@@ -120,11 +120,11 @@
   }
 
   .table-header {
-    @apply text-xs font-medium text-gray-400 uppercase tracking-wider px-4 py-3 text-left border-b border-white/8;
+    @apply text-xs font-medium text-gray-400 uppercase tracking-wider px-4 py-3 text-left border-b border-[rgba(255,255,255,0.08)];
   }
 
   .table-cell {
-    @apply px-4 py-3 text-sm text-gray-300 border-b border-white/5;
+    @apply px-4 py-3 text-sm text-gray-300 border-b border-[rgba(255,255,255,0.05)];
   }
 
   .nav-link {

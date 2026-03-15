@@ -1,11 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import type { Metadata } from 'next';
-
-// Note: metadata export only works in server components; for client pages, set it in a parent.
-// We export a title constant for reference.
-export const PAGE_TITLE = 'Discovery';
 
 type RunStatus = 'running' | 'completed' | 'failed' | 'queued';
 
