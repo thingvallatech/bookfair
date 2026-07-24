@@ -6,7 +6,7 @@ export const meta = {
   phases: [
     { title: 'Survey', detail: 'one agent per domain hunts genuinely open problems' },
     { title: 'Score', detail: 'rate each candidate against the tractability rubric' },
-    { title: 'Refute', detail: 'skeptic argues each top candidate is harder than it looks' },
+    { title: 'Refute', detail: 'skeptics grade the objections against each top candidate' },
     { title: 'Synthesize', detail: 'rank survivors, write the theory of attack for each' },
   ],
 };
@@ -14,6 +14,19 @@ export const meta = {
 // Written in the post-Claude-5 prompting style: state the goal and the failure
 // modes that actually matter, then get out of the model's way. No worked
 // examples, no rule lists — those narrow the search more than they help.
+//
+// v2, informed by run 1 (docs/science-feasibility/run-01-report.md), which
+// returned 0 survivors from 12 shortlisted. Three changes, all traceable to
+// that run:
+//   - Prospecting is steered away from the two archetypes that produced every
+//     one of the 12 deaths, and toward the shapes that would have survived.
+//   - The rubric drops two axes that carried no variance (every candidate
+//     scored 4-5 on both) and adds cost-to-kill, whose absence is what let
+//     twelve doomed candidates reach full write-up.
+//   - Refutation grades severity instead of voting. Run 1 gave two skeptics a
+//     unanimous-survival veto and told both to default to skepticism, which is
+//     an unfalsifiable filter — nothing can survive it, so a 0/12 result
+//     carried no information about the candidates.
 
 const DOMAINS = args?.domains ?? [
   {
@@ -43,6 +56,26 @@ const DOMAINS = args?.domains ?? [
   },
 ];
 
+// Carried forward from run 1's closing section. This is the part of the
+// workflow that accumulates: each run's structural finding becomes the next
+// run's prospecting filter.
+const PROSPECTING = `
+What to look for, in rough order of value:
+
+- Claims with expiry dates. One side of a live dispute made a dated, reversible prediction that has since become checkable against data postdating the argument. A genuine out-of-sample test is worth more than any other single property a candidate can have.
+- Entries on maintained record tables — coding bounds, design tables, circuit-complexity records, verified-value tables — where the record-holder's method is published and the symmetry it exploits is narrow. These are refereed, unambiguous, and moving one is a real result.
+- Smaller adjacent targets. For any famous open problem, ask whether a tracked incremental record sits next to it with a short certificate. Attacking the neighbour beats attacking the monument.
+- Refereed claims resting on a control the authors never ran, where the control set is assemblable from public data whose sufficiency is obvious on inspection.
+- Cross-registry consistency checks: two independent public repositories that should agree, where nobody has checked.
+
+What to avoid, because run 1 died entirely on these two shapes:
+
+- The normalization play: "n papers report the deciding quantity in incompatible units, so rebuild them onto one axis and the dispute becomes arithmetic." The pathology is that whether the data can resolve the dispute is only knowable after you have built the whole table, and convention chaos is usually a symptom of an underdetermined measurement rather than its cause. Only admit one of these if input sufficiency is confirmable up front.
+- The compute-frontier play: "the obstruction is engineering, so re-implement the known search with better symmetry breaking and push one step." Published frontiers sit exactly where a competent person already spent the available constant factors. A model buys 2-10x; the next step usually costs 10-1000x. Only admit one of these if a specific >=10x state-space reduction is identifiable before any code is written.
+
+For every candidate, state how someone would find out cheaply that it is hopeless. If the only way to learn that is to do the project, it does not belong on the list.
+`;
+
 const CANDIDATES = {
   type: 'object',
   required: ['candidates'],
@@ -51,13 +84,15 @@ const CANDIDATES = {
       type: 'array',
       items: {
         type: 'object',
-        required: ['name', 'statement', 'status', 'whyOpen', 'whatWouldCount'],
+        required: ['name', 'statement', 'status', 'whyOpen', 'whatWouldCount', 'cheapProbe'],
         properties: {
           name: { type: 'string' },
           statement: { type: 'string', description: 'the open question, stated precisely enough to act on' },
           status: { type: 'string', description: 'what is currently known, what has been ruled out, most recent serious attempt' },
           whyOpen: { type: 'string', description: 'the actual obstruction, not "it is hard"' },
           whatWouldCount: { type: 'string', description: 'what a checkable answer looks like — a proof, a construction, a counterexample, a fit to specific data' },
+          cheapProbe: { type: 'string', description: 'the bounded action — one download, one lookup, one calibration against a known answer — that would reveal within an hour that this is hopeless' },
+          inputsSufficient: { type: 'string', description: 'why the public inputs plausibly carry enough resolution to settle it, and how that can be confirmed before committing' },
           sources: { type: 'array', items: { type: 'string' } },
         },
       },
@@ -78,20 +113,20 @@ const SCORED = {
           name: { type: 'string' },
           scores: {
             type: 'object',
-            required: ['verifiability', 'selfContained', 'searchShape', 'priorArtLeverage', 'decomposability', 'resourceFree'],
+            required: ['verifiability', 'costToKill', 'searchShape', 'priorArtLeverage', 'decomposability', 'inputSufficiency'],
             properties: {
-              verifiability: { type: 'number', description: '0-5: can a candidate answer be checked cheaply and unambiguously — proof assistant, code, held-out data' },
-              selfContained: { type: 'number', description: '0-5: fully specified from public information, no tacit lab knowledge required' },
+              verifiability: { type: 'number', description: '0-5: can a candidate answer be checked cheaply and unambiguously by something external — a proof kernel, a truth table, held-out data the claim was not fit to. Not "a careful audit trail"' },
+              costToKill: { type: 'number', description: '0-5: 5 if a bounded, concretely specified probe falsifies the central assumption in the first hour; 1 if learning it is hopeless requires building the deliverable' },
               searchShape: { type: 'number', description: '0-5: the space of candidate answers is structured enough to search rather than astronomically flat' },
               priorArtLeverage: { type: 'number', description: '0-5: progress plausibly comes from connecting existing results across silos, which is where a model has an edge over a specialist' },
-              decomposability: { type: 'number', description: '0-5: splits into sub-lemmas or cases that can be attacked and banked independently' },
-              resourceFree: { type: 'number', description: '0-5: needs no new experiment, instrument, or proprietary dataset' },
+              decomposability: { type: 'number', description: '0-5: splits into sub-lemmas or cases that can be attacked and banked independently, so a stalled run still emits something' },
+              inputSufficiency: { type: 'number', description: '0-5: the public inputs demonstrably carry enough resolution to separate the hypotheses, and that can be confirmed before the work rather than after' },
             },
           },
           total: { type: 'number' },
           theoryOfAttack: { type: 'string', description: 'the specific reason to think a model could crack this — which capability meets which structural feature of the problem' },
           firstMove: { type: 'string', description: 'the concrete opening step a solving run should take' },
-          killCondition: { type: 'string', description: 'the observation that should make a solving run abandon this problem early' },
+          killCondition: { type: 'string', description: 'the observation that should make a solving run abandon this problem early — and it must be observable well before the project is finished' },
         },
       },
     },
@@ -106,13 +141,17 @@ const REFUTATION = {
       type: 'array',
       items: {
         type: 'object',
-        required: ['name', 'survives', 'strongestObjection', 'adjustedTotal'],
+        required: ['name', 'severity', 'strongestObjection'],
         properties: {
           name: { type: 'string' },
-          survives: { type: 'boolean' },
+          severity: {
+            type: 'string',
+            enum: ['fatal', 'serious', 'minor', 'none'],
+            description: 'fatal: the problem is closed, misstated, or the attack is provably a dead end. serious: the attack likely fails but the problem is real and a different angle might work. minor: a real caveat that changes cost, not viability. none: no objection found',
+          },
           strongestObjection: { type: 'string' },
-          alreadySolved: { type: 'boolean', description: 'true if this turns out to be closed, folklore, or misstated' },
-          adjustedTotal: { type: 'number' },
+          alreadySolved: { type: 'boolean', description: 'true only if this is closed, folklore, or misstated — cite what closed it' },
+          salvage: { type: 'string', description: 'if the objection is fatal to the approach but not to the problem, the reformulation that would survive it' },
         },
       },
     },
@@ -127,12 +166,12 @@ const perDomain = await pipeline(
 
   (d) =>
     agent(
-      `Find open scientific problems in this area that are still genuinely unsolved as of today, and that look tractable to a very strong reasoning model working from public information alone.
+      `Find open scientific problems in this area that are still genuinely unsolved as of today, and that look tractable to a very strong reasoning model working from public information alone — no lab access, no new data collection, no proprietary datasets.
 
 Domain: ${d.brief}
 
-Search the literature and recent preprints — do not work from memory alone, since the frontier moves and half-remembered problems are often already closed. Prefer problems that are precisely stated and whose answers are checkable over famous ones that are merely famous. A sharp unresolved special case of a big conjecture is worth more here than the big conjecture. Verify each is still open before returning it.
-
+Search the literature and recent preprints — do not work from memory alone, since the frontier moves and half-remembered problems are often already closed. Verify each is still open before returning it. Prefer problems that are precisely stated and whose answers are checkable over problems that are merely famous; a sharp unresolved special case is worth more here than the big conjecture it sits under.
+${PROSPECTING}
 Return 5-8 candidates. Do not attempt to solve anything.`,
       { label: `survey:${d.key}`, phase: 'Survey', schema: CANDIDATES },
     ),
@@ -144,9 +183,13 @@ Return 5-8 candidates. Do not attempt to solve anything.`,
 
 ${JSON.stringify(survey.candidates, null, 2)}
 
-Score each dimension in the schema 0-5 and set total to their sum. Be harsh on verifiability in particular: a problem where a wrong answer looks exactly like a right one is close to worthless to attack, however interesting it is.
+Score each dimension in the schema 0-5 and set total to their sum. Two axes deserve most of your attention:
 
-The important field is theoryOfAttack. The next run will read it and try to actually solve the problem, so it needs to say why this problem might yield — which specific structural feature of the problem meets which specific model strength (formal verification loops, exhaustive case analysis, cross-domain literature synthesis, program search against a checker, reformulation into a solved framework). "The model is smart" is not a theory of attack. Neither is restating the problem. Say what the crack in it is.
+Verifiability. A problem where a wrong answer looks exactly like a right one is worse than no attempt, because it consumes the run and emits a false result into the record. Reserve 5 for an external, pre-existing, cheap checker.
+
+Cost-to-kill. The previous run of this workflow carried twelve doomed candidates to full write-up because none of them could be falsified before the project was essentially complete. If the first move and the kill condition are the same activity, that is a low score, however elegant the problem.
+
+The important field is theoryOfAttack. The next run will read it and try to actually solve the problem, so it needs to say why this problem might yield — which specific structural feature meets which specific model strength (formal verification loops, exhaustive case analysis, cross-domain literature synthesis, program search against a checker, reformulation into a solved framework). "The model is smart" is not a theory of attack. Neither is restating the problem. Say what the crack in it is.
 
 Do not attempt to solve anything.`,
       { label: `score:${d.key}`, phase: 'Score', schema: SCORED },
@@ -156,21 +199,26 @@ Do not attempt to solve anything.`,
 const scored = perDomain.filter(Boolean).flatMap((r) => r.scored);
 log(`${scored.length} candidates scored`);
 
+// Verifiability below 4 is disqualifying regardless of total: the failure mode
+// is a confident wrong answer, which is worse than no attempt.
+const eligible = scored.filter((c) => (c.scores?.verifiability ?? 0) >= 4);
+log(`${scored.length - eligible.length} dropped on the verifiability floor`);
+
 phase('Refute');
 
-const shortlist = scored.sort((a, b) => b.total - a.total).slice(0, 12);
+const shortlist = eligible.sort((a, b) => b.total - a.total).slice(0, 15);
 
 const verdicts = (
   await parallel([
     () =>
       agent(
-        `Try to knock these problems off a shortlist of "worth attacking with a model". Assume the optimistic case has already been made; your job is the other side.
+        `Check whether these problems are actually still open.
 
 ${JSON.stringify(shortlist, null, 2)}
 
-For each, check whether it is actually still open — search for recent resolutions, and treat folklore results and unpublished-but-known solutions as closed. Then find the strongest reason the stated theory of attack fails: an obstruction that has already defeated this exact approach, a verification step that is not as cheap as claimed, a search space that is flatter than it looks, or a hidden dependence on data or apparatus.
+Search for recent resolutions, and treat folklore results and unpublished-but-known solutions as closed. Where a candidate proposes a method, check whether someone has already run that exact method and published the outcome — that is the most common way one of these dies.
 
-Set survives=false when the objection is decisive. Default to skepticism when you are unsure.`,
+Mark severity fatal only when you can point to what closed it. A problem you merely suspect is closed is serious, not fatal, and say what would settle it.`,
         { label: 'refute:openness', phase: 'Refute', schema: REFUTATION },
       ),
     () =>
@@ -179,33 +227,39 @@ Set survives=false when the objection is decisive. Default to skepticism when yo
 
 ${JSON.stringify(shortlist, null, 2)}
 
-Serious people have worked on all of these. For each, say what those people tried, why it failed, and whether the proposed theory of attack is meaningfully different from what has already been tried and failed — or whether it is the same idea wearing new clothes. A model rediscovering a known dead end is the failure mode to catch here.
+Serious people have worked on all of these. For each, say what those people tried, why it failed, and whether the proposed theory of attack is meaningfully different from what has already been tried and failed — or the same idea wearing new clothes. A model rediscovering a known dead end is the failure mode to catch here.
 
-Set survives=false when the objection is decisive. Default to skepticism when you are unsure.`,
+Grade honestly rather than defensively. Reserve fatal for an obstruction you can name that provably defeats this approach; use serious when the approach likely fails but the problem itself is still worth someone's attention, and fill in salvage with the angle that would survive your objection. A blanket "this is hard, experts failed" is not an objection — every open problem has that property, and grading everything fatal produces no information.`,
         { label: 'refute:difficulty', phase: 'Refute', schema: REFUTATION },
       ),
   ])
 ).filter(Boolean);
 
+const PENALTY = { fatal: 99, serious: 6, minor: 2, none: 0 };
+
 const objections = new Map();
 for (const v of verdicts.flatMap((r) => r.verdicts)) {
-  const prior = objections.get(v.name) ?? [];
-  objections.set(v.name, [...prior, v]);
+  objections.set(v.name, [...(objections.get(v.name) ?? []), v]);
 }
 
-const survivors = shortlist
-  .map((c) => {
-    const vs = objections.get(c.name) ?? [];
-    return {
-      ...c,
-      objections: vs.map((v) => v.strongestObjection),
-      killed: vs.some((v) => v.alreadySolved || v.survives === false),
-      adjustedTotal: vs.length ? Math.min(...vs.map((v) => v.adjustedTotal ?? c.total)) : c.total,
-    };
-  })
-  .filter((c) => !c.killed)
-  .sort((a, b) => b.adjustedTotal - a.adjustedTotal);
+const assessed = shortlist.map((c) => {
+  const vs = objections.get(c.name) ?? [];
+  // Hard kill only for demonstrated closure, or for both skeptics independently
+  // finding the approach fatal. A single fatal grade downgrades heavily but
+  // leaves the candidate rankable — one skeptic's certainty is not a fact.
+  const closed = vs.some((v) => v.alreadySolved);
+  const bothFatal = vs.length > 1 && vs.every((v) => v.severity === 'fatal');
+  return {
+    ...c,
+    objections: vs.map((v) => ({ severity: v.severity, objection: v.strongestObjection, salvage: v.salvage })),
+    killed: closed || bothFatal,
+    killReason: closed ? 'demonstrated closure' : bothFatal ? 'both skeptics fatal' : null,
+    adjustedTotal: c.total - vs.reduce((sum, v) => sum + (PENALTY[v.severity] ?? 0), 0),
+  };
+});
 
+const survivors = assessed.filter((c) => !c.killed).sort((a, b) => b.adjustedTotal - a.adjustedTotal);
+const killed = assessed.filter((c) => c.killed);
 log(`${survivors.length} of ${shortlist.length} survived refutation`);
 
 phase('Synthesize');
@@ -213,17 +267,15 @@ phase('Synthesize');
 const report = await agent(
   `Write the final ranked report on open scientific problems worth attacking with a frontier model.
 
-Survivors, already scored and skeptically vetted:
+Survivors, scored and skeptically vetted, already ordered by adjusted score:
 ${JSON.stringify(survivors, null, 2)}
 
-Killed during refutation, with reasons — include these briefly so a later run does not resurrect them:
-${JSON.stringify(
-  shortlist.filter((c) => (objections.get(c.name) ?? []).some((v) => v.alreadySolved || v.survives === false)),
-  null,
-  2,
-)}
+Killed during refutation — include these briefly with reasons so a later run does not resurrect them:
+${JSON.stringify(killed, null, 2)}
 
-Output markdown. Rank the survivors. For each, give the problem statement, the score breakdown, the theory of attack, the concrete first move, and the kill condition. Then close with what the top-ranked problems have in common structurally — that pattern is the most reusable thing in this document, because it tells the next run what kind of problem to look for, not just which ones.
+Output markdown. Rank the survivors. For each: the problem statement, the score breakdown, the theory of attack, the concrete first move, the kill condition, and the surviving objections stated honestly rather than dismissed — a solving run needs to know what it is walking into. Where a skeptic offered a salvage, prefer the salvaged framing to the original.
+
+Then close with what the top-ranked problems have in common structurally. That pattern is the most reusable thing in this document, because it tells the next prospecting run what shape of problem to look for rather than just which ones. Be specific enough that the finding can be pasted into a prompt.
 
 The audience is the next run, which will try to solve these. Write for that reader. Do not attempt any solution yourself.`,
   { label: 'synthesize', phase: 'Synthesize' },
