@@ -62,6 +62,7 @@ That constant is the accumulating part of this workflow; the rankings are its ou
 | 1 | crosswalk | [run-01-report.md](run-01-report.md) | 39 surveyed, 12 shortlisted, **0 survived** |
 | 2 | crosswalk | [run-02-report.md](run-02-report.md) | 38 surveyed, 17 below the floor, 15 shortlisted, **10 survived** |
 | 3 | open-problem | [run-03-report.md](run-03-report.md) | 37 surveyed, 24 below the floor, 13 shortlisted, **11 survived** |
+| 4 | open-problem | [run-04-report.md](run-04-report.md) | 30 surveyed with runs 1–3 excluded, 12 below the floor, 15 shortlisted, **11 survived** |
 
 ### What run 1 taught run 2
 
@@ -127,3 +128,38 @@ published algorithm that already outputs the objects the plan meant to find);
 the proxy is always cheaper and provably decides a different question); and **a kill
 condition that cannot fire** (two entries specified exits that arithmetic shows always
 pass, so the probe was never instrumented).
+
+### What run 4 taught run 5
+
+First run with the exclusion list, so run 4 explored fresh territory. It also produced the
+sharpest screen so far, now the opening line of the profile:
+
+> The answer is universally quantified. Any oracle you have is pointwise. **Name the
+> mechanism** that converts pointwise checks into the universal statement — a confluent
+> rewriting completeness theorem, a parametrized family with a proof, a Positivstellensatz
+> certificate over a parameter cone, a finite inductive invariant closed under a morphism,
+> an exhaustive finite classification. If the answer is "sample many points and
+> generalize," the candidate is dead.
+
+That one test accounts for most of the run's serious objections: sampled identities are not
+a finite basis, a solver hit at n=3,4 is consistent with the property holding for all n, a
+four-species sweep cannot prove a claim over all species counts.
+
+The best targets turned out to be **stated limitations of a recent paper** — "we restrict
+to qubit codes"; "we seek a mathematical proof of Theorem 6.1." Read the source paper's
+Discussion and take the axis the authors name. Every entry that scored well did that, and
+every entry demolished in refutation either invented an axis the authors considered routine
+or re-ran one they had already exhausted.
+
+**Nine of eleven survivors had their stated first move shown to be already published or
+aimed at the wrong side of the problem**, and two of four kills were closures dated within
+weeks of prospecting. Hence three more anti-patterns now screened at pitch time: the first
+move reproduces a published evidence-gathering step; the "unexploited" method is the tool's
+documented default; and invariant mismatch, where the literature's theorem quantifies over
+object X and the plan computes object Y.
+
+A scoring correction came out of this too. **Raw score was nearly uncorrelated with what
+survived** — the highest raw score in the run took a fatal objection. The axes that survived
+contact were `barrierClarity`, scored on whether the existing method is *provably*
+indecisive rather than reputationally hard, and `partialCredit` measured against the
+salvaged deliverable rather than the headline one.

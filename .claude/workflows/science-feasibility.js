@@ -62,11 +62,19 @@ const PROFILES = {
     prospecting: `
 Hunt real open questions — ones where the deliverable is a resolution, not a table about the literature. Most attempts on these fail. That is accepted here and you should not compensate by drifting toward safe bookkeeping projects; a candidate whose deliverable is a survey, a crosswalk, or an audit does not belong in this run.
 
-The strongest signal, which run 3 found in every entry that survived with its value intact:
+The most discriminating test, from run 4. Apply it before anything else, because it accounts for most of that run's serious objections:
+
+> The answer is universally quantified. Any oracle you have is pointwise. NAME THE MECHANISM that converts pointwise checks into the universal statement — a confluent-rewriting completeness theorem, a parametrized family with a proof, a Positivstellensatz certificate over a parameter cone, a finite inductive invariant closed under a morphism, an exhaustive finite classification.
+>
+> If the answer is "sample many points and generalize," the candidate is dead. Sampled identities are not a finite basis. A solver hit at n=3,4 is consistent with the property holding for all n. A four-species sweep cannot prove a claim over all species counts.
+
+The strongest positive signal, which run 3 found in every entry that survived with its value intact:
 
 > A field with an accumulating body of SUFFICIENT conditions and no necessity or obstruction machinery at all.
 
 That asymmetry is reliable because sufficiency is what constructive methods and automated search produce, so the necessity side is structurally under-attacked. It generalizes: prefer problems where the NEGATIVE direction is the deliverable. "Certify that no object of this kind exists in this explicitly delimited class" is publishable at every class size, is self-certifying, and is what a model is differentially good at — exhaustive, error-prone, symbolic case analysis that humans avoid. Record-beating framings — find a denser packing, a better function, a new solvable model — have no partial credit and compete against decades of specialist tooling.
+
+The best targets found so far are stated limitations of a recent paper — "we restrict to qubit codes"; "we seek a mathematical proof of Theorem 6.1". Read the source paper's Discussion section and take the axis the authors name. Every run-4 entry that scored well came from doing that, and every entry demolished in refutation came either from inventing an axis the authors considered routine or from re-running one they had already exhausted. Two further requirements from that run: a total, exact, cheap decision oracle must exist for the atomic question, so verification is re-running code rather than refereeing prose; and a published answer key of settled instances must exist to calibrate against before touching the open one, because without one you cannot distinguish a bug from a discovery and the sweep will emit convincing fakes.
 
 Two structural properties that decide whether a plan runs at all:
 
@@ -96,6 +104,14 @@ Three mistakes cost more points than anything else in run 3. Check each before r
 - Attacking a proxy for the real property. Spectra instead of the operator algebra, convex hulls instead of the bodies, admissible multisets instead of full spectra with placement. The proxy is always cheaper to compute and provably decides a different question. Confirm on a worked example that the computed predicate is logically equivalent to the target property.
 - A kill condition that cannot fire. Two entries specified exits that arithmetic shows will always pass. Compute the kill condition at pitch time rather than asserting it — a probe whose only possible outcome is "proceed" is not instrumented.
 
+Three more from run 4, where nine of eleven survivors had their stated first move shown to be already published or aimed at the wrong side of the problem:
+
+- The first move reproduces a published evidence-gathering step. Search for it before scoring, not after. Several candidates had somebody else's paper as their day one.
+- The claimed unexploited method is the tool's documented default, or a rename of an existing family. One candidate proposed escalating an LP to integer feasibility against a tool that has enumerated integral points since 2015.
+- Invariant mismatch: the literature's theorem quantifies over object X and the plan computes object Y. Re-derive which invariant the theorem actually ranges over.
+
+Prefer a residue that is a criterion or a general-n statement over two to four named instances. A three-instance residue in a field shipping four papers every six months has a shelf life shorter than the run that attacks it.
+
 For every candidate, name the barrier the angle must evade, and say how someone would learn cheaply that the angle fails.`,
     axes: {
       verifiability:
@@ -116,6 +132,8 @@ For every candidate, name the barrier the angle must evade, and say how someone 
     scoringNotes: `Verifiability and certificate size carry the most weight. Together they decide whether a run can find a resolution at all and know it has one — everything else only matters if those two hold.
 
 Be strict about untriedAngle. This is where optimism leaks in. An angle that a specialist would recognize as the obvious first thing to try is not untried, whatever the literature happens to have written down. If you cannot name the angle in one sentence, score it 0.
+
+Two corrections from run 4, where the raw total turned out to be nearly uncorrelated with what survived refutation — the highest raw score in that run took a fatal objection. Score barrierClarity on whether the existing method is PROVABLY indecisive here, which is a real invitation, rather than merely reputationally hard, which is not. And score partialCredit against the deliverable that survives a skeptic, not the headline one: ask what exactly gets written up if the theorem does not fall, and whether a referee would take it. "A table of numbers the field needs" outranks "nothing" regardless of how elegant the certificate would have been.
 
 Do not inflate scores to fill a list. A short honest shortlist is the useful output; a long one padded with monuments and vague hardness is not.`,
     extraCandidateFields: {
@@ -190,8 +208,13 @@ Null-publishability is the tiebreaker. If nothing ships when the headline claim 
 const SEEN = [
   "3-query locally decodable codes: beat the near-cubic lower bound",
   "A decoy control for the peptide evidence behind non-canonical ORFs",
+  "A superlogarithmic lower bound for separating words with DFAs",
+  "AME(11,3): the last unknown case for qutrits \u2014 certify nonexistence by strengthening the weight-enumerator LP",
   "Adult human hippocampal neurogenesis: are the \"neuroblast/immature granule neuron\" clusters in snRNA-seq real, or an annotation artifact?",
+  "An arithmetic obstruction certificate against the purely thermal explanation of plasmonic photocatalysis",
   "An explicit non-identifiability certificate for COSMIC mutational signature attribution (SBS3 / SBS5 / SBS40)",
+  "An infeasibility certificate for a nuclear-data origin of the 5 MeV reactor antineutrino bump",
+  "An infinite word avoiding additive squares over a fixed finite alphabet in Z",
   "Approximate Nash equilibria in bimatrix games: get below 1/3",
   "Are chemically invalid MOF structures systematically over-represented at the top of published screening rankings?",
   "Audit and extend the unverified record chain for the Erd\u0151s unit-distance exponent",
@@ -203,6 +226,9 @@ const SEEN = [
   "Characteristic 2 and dimension >= 4 analogues of the new Jacobian conjecture counterexample",
   "Characteristic 2 and dimension \u2265 4 analogues of the new Jacobian conjecture counterexample",
   "Closing specific entries on the HUPO missing-proteins table from unmined public mass spectrometry",
+  "Closing the upper-bound side of the maximal \u00b11 determinant at the smallest unresolved order",
+  "Combinatorial RNA Design: complete the designability characterization when unpaired bases are allowed (4-letter Watson\u2013Crick model)",
+  "Completeness of the cluster-expansion ground-state list: unconstructibility certificates for the alloy configurational polytope",
   "Completing the Shiraishi\u2013Yamaguchi integrability dichotomy beyond spin S = 13.5",
   "Conway's 99-graph: eliminate the remaining possible automorphism orders",
   "Conway's 99-graph: existence of a strongly regular graph with parameters (99, 14, 1, 2)",
@@ -213,6 +239,7 @@ const SEEN = [
   "Crouzeix's conjecture for general 3\u00d73 matrices",
   "Decidability of the Skolem Problem for order-5 linear recurrence sequences",
   "Densest packing of regular tetrahedra: beat 4000/4671 via exact lattice packing of non-dimer clusters",
+  "Distinguishability of level-2 phylogenetic networks outside the galled / outer-labeled-planar hypotheses",
   "Does GNoME's convex-hull expansion survive rigorous isometry-invariant de-duplication?",
   "Does effective population size affect the germline mutation rate? A three-way contradiction on identical public data",
   "Does human FNDC5 produce circulating irisin, and from which start codon?",
@@ -222,9 +249,11 @@ const SEEN = [
   "Does the Red Sea rerouting constraint on ship aerosol\u2013cloud sensitivity hold out of sample in 2025\u20132026?",
   "E677 \u22a8_fin E255: the last open implication of the Equational Theories Project",
   "Equatorial Pacific zonal SST gradient trend: forced response, model mean-state bias, or internal variability?",
+  "Evasiveness (Aanderaa-Karp-Rosenberg) for graphs on 10 vertices",
   "Exact KPZ exponents in d \u2265 2 and the existence of a finite upper critical dimension",
   "Exact comparison complexity of selection: the value V_7(16)",
   "Exact constants in open addressing after the fall of Yao's conjecture",
+  "Exact randomized competitive ratio of the 2-server problem on 3 points",
   "Exact value of the 2D percolation chemical-distance (shortest-path) exponent d_min",
   "Existence of a q-analog of the Fano plane (binary 2-(7,3,1)_2 subspace design), and the [7,4;3]_2 constant-dimension code gap 333 vs 381",
   "Existence of an extremal binary self-dual [72,36,16] code",
@@ -237,26 +266,35 @@ const SEEN = [
   "Improving the capacity lower bound for the binary deletion channel at high deletion rate",
   "Is D(f) = O(deg(f)^2)? (the Nisan-Smolensky cube-vs-square gap)",
   "Is the CMIP model failure to reproduce eastern-Pacific and Southern Ocean cooling a resolution/stratocumulus error rather than a forced-versus-internal-variability question?",
+  "Is the Eliashberg-optimal coupling spectrum a theorem? A moment-problem obstruction for maximum ambient-pressure Tc",
+  "Is the Shinar\u2013Feinberg condition necessary for absolute concentration robustness within an exhaustively enumerated class of bimolecular networks?",
+  "Is the incompatibility of nitrate-photolysis HONO with the global NOx budget an artifact of a loading-independent enhancement factor?",
   "Is the molecular O\u2082 seen by RIXS in Li-rich cathodes real electrochemistry or a core-hole artifact?",
   "Is the prevention-versus-treatment defense of the GLP-1/dementia literature falsifiable with data already public?",
+  "Is there a degree-4 sum-of-squares refutation of 7 mutually unbiased bases in C^6?",
   "Is trapped molecular O2 in Li-rich cathodes real electrochemistry or a RIXS core-excitation artifact?",
   "List update: break 1.6 with a non-projective randomized algorithm, or settle the 3-item case exactly",
   "Lower critical dimension of the de Almeida\u2013Thouless line for short-range Ising spin glasses",
   "Lower the dimension threshold in the sausage conjecture",
+  "Lower the rigorous hole-density threshold for Nagaoka-state instability on the square lattice below delta = 0.251",
   "Maximum number of minimal dominating sets in an n-vertex graph",
   "Metformin's target at therapeutic exposure: PEN2/v-ATPase versus intestinal complex I",
   "Move an entry in Grechuk's living table of smallest open Diophantine equations",
   "Moving bedaquiline entries in the WHO M. tuberculosis mutation catalogue from 'uncertain' to graded",
   "Multiplicative complexity of the AES S-box: is 32 AND gates optimal?",
+  "Multisite phosphorylation: is the Wang\u2013Sontag bound 2n\u22121 attained at n = 5?",
   "N6-methyladenine in mammalian nuclear DNA: real mark, salvage incorporation, or contamination",
   "Natural boundary of the 2D Ising susceptibility (Nickel) vs. extended analyticity of Ising field theory (Fonseca\u2013Zamolodchikov)",
   "Necessary conditions for free-fermion solvability ('free fermions in disguise' classification)",
+  "N\u00e9el order for S=1/2 on the square lattice: close the Kennedy\u2013Lieb\u2013Shastry short-distance criteria with certified correlator bounds",
   "Optimal redundancy of binary 2-deletion-correcting codes: 2 log n or 4 log n?",
   "Optimal size of a sorting network on 13 channels: is S(13) = 44 or 45?",
   "Order of finite weak central groupoids (ETP law E1485) is n\u00b2 or 2n\u00b2",
   "Out-of-sample test of the selection-based explanation for the eQTL\u2013GWAS colocalization gap",
+  "PSCA(9,7,1): the smallest open case of the Mathon-van Trung nonexistence conjecture",
   "Persistence Conjecture for weakly reversible mass-action systems, dimension-4 case",
   "Prove or refute the Nivesvivat\u2013Ribault\u2013Jacobsen conjecture on critical loop-model structure constants",
+  "Prove the Hadamard-cube identity for MUB triplets in dimension 6 (ideal membership), which implies Zauner's MUB(6)=3",
   "Raise a generic-rank record for elliptic surfaces over Q(t) with prescribed torsion",
   "Randomized round complexity of locally optimal cut in the LOCAL model",
   "Re-adjudicating the Kyber-512 memory-cost dispute against post-2023 sieving measurements",
@@ -271,6 +309,8 @@ const SEEN = [
   "The CMD-3 e\u207ae\u207b\u2192\u03c0\u207a\u03c0\u207b cross-section discrepancy and the data-driven hadronic vacuum polarization",
   "The DES-SN5YR vs. Pantheon+ low-redshift offset that decides whether dark energy evolves",
   "The Muon Puzzle: the muon deficit in air-shower simulations",
+  "The PPT-squared conjecture in dimension 4: find the counterexample or close the delimited class",
+  "The Prime Graph Question for integral group rings: the cases where the HeLP linear program stays feasible",
   "The aetiology of COSMIC signature SBS12",
   "The arctic curve of the six-vertex model with partial domain-wall boundaries away from the free-fermion point",
   "The causal gene and causal tissue at the FTO obesity locus",
@@ -281,8 +321,11 @@ const SEEN = [
   "The exponent in blocklength lower bounds for linear 3-query LCCs over non-binary fields",
   "The four compounds the A-Lab correction left inconclusive",
   "The homogeneous ice nucleation rate gap: is it the water model's driving force, the rare-event method, or the experimental extraction?",
+  "The intermediate-complexity gap for LCLs in the VOLUME model",
   "The kissing number in dimension 5",
   "The last open Equational Theories Project implication: E677 \u22a7_fin E255",
+  "The last unresolved four-element additively idempotent semirings (finite basis problem)",
+  "The last unsolved instances of PCP[3,4]",
   "The missing null calibration for the GWTC-4.0 combined ringdown deviation, where GR now sits at the 98.6% boundary",
   "The molecular target through which SGLT2 inhibitors protect the failing heart",
   "The ncm5U34 amidase: an orphan enzyme unknown in every organism",
@@ -290,18 +333,23 @@ const SEEN = [
   "The per-neuron rate of somatic L1 retrotransposition in human brain",
   "The quasar number-count dipole: a matched-source cross-registry test that nobody has run",
   "The rigorous lower bound on the square-lattice site percolation threshold, unmoved since 1996",
+  "The smallest open order of the circulant Hadamard matrix conjecture",
   "The stellar-interior iron opacity discrepancy and the solar abundance problem",
   "The transported substrate of SLC25A47, a liver-specific orphan mitochondrial carrier",
   "The true out-of-sample ceiling for protein\u2013ligand cofolding: reconciling Runs N' Poses with the Mac1 prospective benchmark",
+  "The two-dimensional Lieb\u2013Oxford constant: close the factor-three gap between the rigorous 5.90 and the physically argued 1.96",
+  "The unique seven-element lattice with no known congruence-lattice representation",
   "The \u03bb-point anomaly: the 8\u03c3 disagreement in the O(2) correlation-length exponent between the zero-gravity helium experiment and theory",
   "Three mutually orthogonal Latin squares of order 10",
   "Trivialize a remaining unsolved Miller\u2013Schupp presentation in the public Andrews\u2013Curtis benchmark",
   "Unconditional cubic separation between randomized and quantum query complexity for total Boolean functions",
   "Unstable Andrews\u2013Curtis trivialization of AK(3) and the residual Miller\u2013Schupp presentations",
+  "Vegetation models versus atmospheric inversions on the 2023/24 tropical land carbon loss \u2014 arbitrated by the delta-13C budget",
   "Water's second critical point vs. glassy arrest: does the March 2026 Science claim survive its own missing control?",
   "Which Cu nuclearity is the kinetically relevant active site for direct CH\u2084 \u2192 CH\u2083OH in Cu-exchanged zeolites?",
   "Which intratumoral microbial signals in TCGA are biology and which are contamination?",
   "Which remaining hypothesis explains the ~11 Gg yr\u207b\u00b9 HFC-23 gap between reported and observed emissions?",
+  "Zero-one biochemical reaction networks: no nondegenerate multistationarity in 2-dimensional networks with four or more species",
   "\u03a0\u00b9\u2081-conservativity of Ramsey's theorem for pairs over RCA\u2080 + B\u03a3\u2070\u2082",
 ];
 
