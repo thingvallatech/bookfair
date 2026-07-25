@@ -8,6 +8,20 @@ a later solving run starts with the reasoning already done.
 Run it with `Workflow({ name: 'science-feasibility' })`, or pass
 `args: { domains: [{ key, brief }, ...] }` to retarget the survey.
 
+## Profiles
+
+"Feasible" means different things depending on what counts as an acceptable outcome,
+so `args.profile` picks the target shape.
+
+- **`open-problem`** (default) — genuine open questions where a resolution is the only
+  deliverable. Most attempts fail and that is priced in: the rubric spends its weight on
+  whether a resolution would be short enough to find and checkable once found.
+- **`crosswalk`** — auditable deliverables that ship whether or not the headline claim
+  lands. High success rate, but the outputs are bookkeeping rather than resolutions.
+
+The two profiles score on different axes. Both keep the verifiability floor and the
+graded refutation.
+
 Script: [`.claude/workflows/science-feasibility.js`](../../.claude/workflows/science-feasibility.js)
 
 ## Shape
@@ -28,12 +42,14 @@ downgrades a candidate but does not remove it.
 
 ## Rubric
 
-Seven axes, 0–5 each. Verifiability below 4 is disqualifying rather than a deduction:
-a problem whose failure mode is a confident wrong answer is worse than no attempt,
-because it consumes the run and emits a false result into the record.
+Seven axes, 0–5 each, max 35. Verifiability below 4 is disqualifying rather than a
+deduction: a problem whose failure mode is a confident wrong answer is worse than no
+attempt, because it consumes the run and emits a false result into the record.
 
-`verifiability` · `costToKill` · `searchShape` · `priorArtLeverage` ·
-`decomposability` · `inputSufficiency` · `nullPublishable`
+- **open-problem:** `verifiability` · `certificateSize` · `untriedAngle` ·
+  `barrierClarity` · `reformulationSurface` · `partialCredit` · `decomposability`
+- **crosswalk:** `verifiability` · `costToKill` · `searchShape` · `priorArtLeverage` ·
+  `decomposability` · `inputSufficiency` · `nullPublishable`
 
 ## The loop
 
@@ -41,10 +57,11 @@ Each run's closing structural finding is folded back into the `PROSPECTING` cons
 in the script, so the next run's survey starts where the last one's skepticism ended.
 That constant is the accumulating part of this workflow; the rankings are its output.
 
-| Run | Report | Outcome |
-|---|---|---|
-| 1 | [run-01-report.md](run-01-report.md) | 39 surveyed, 12 shortlisted, **0 survived** |
-| 2 | [run-02-report.md](run-02-report.md) | 38 surveyed, 17 below the verifiability floor, 15 shortlisted, **10 survived** |
+| Run | Profile | Report | Outcome |
+|---|---|---|---|
+| 1 | crosswalk | [run-01-report.md](run-01-report.md) | 39 surveyed, 12 shortlisted, **0 survived** |
+| 2 | crosswalk | [run-02-report.md](run-02-report.md) | 38 surveyed, 17 below the floor, 15 shortlisted, **10 survived** |
+| 3 | open-problem | [run-03-report.md](run-03-report.md) | 37 surveyed, 24 below the floor, 13 shortlisted, **11 survived** |
 
 ### What run 1 taught run 2
 
@@ -83,3 +100,30 @@ adjudicating body is often the ingesting body. And days-old announcements are th
 possible target: one candidate lost two of its three sub-questions to a blog comment
 thread inside 24 hours. Recency is negative value, because the crowd is fastest exactly
 where the problem is newest.
+
+### What run 3 taught run 4
+
+Run 3 was the first under the `open-problem` profile. The verifiability floor did most
+of the work — 24 of 37 candidates fell below it, against 17 of 38 in run 2, which is the
+expected cost of hunting resolutions instead of tables.
+
+Every entry that survived with its value intact shared one signal:
+
+> A field with an accumulating body of **sufficient** conditions and no necessity or
+> obstruction machinery at all.
+
+That asymmetry is reliable because sufficiency is what constructive methods and automated
+search produce, leaving the necessity side structurally under-attacked. It generalizes
+into a target-selection rule: **prefer problems where the negative direction is the
+deliverable.** "Certify that no object of this kind exists in this delimited class" is
+publishable at every class size, is self-certifying, and is what exhaustive symbolic case
+analysis is differentially good at. Record-beating framings have no partial credit and
+compete against decades of specialist tooling.
+
+Three mistakes cost more than anything else, and are now checked during prospecting:
+**assuming the space is unswept** (four of eleven entries lost most of their value to a
+published algorithm that already outputs the objects the plan meant to find);
+**attacking a proxy for the real property** (spectra instead of the operator algebra —
+the proxy is always cheaper and provably decides a different question); and **a kill
+condition that cannot fire** (two entries specified exits that arithmetic shows always
+pass, so the probe was never instrumented).

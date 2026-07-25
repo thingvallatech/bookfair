@@ -62,6 +62,17 @@ const PROFILES = {
     prospecting: `
 Hunt real open questions — ones where the deliverable is a resolution, not a table about the literature. Most attempts on these fail. That is accepted here and you should not compensate by drifting toward safe bookkeeping projects; a candidate whose deliverable is a survey, a crosswalk, or an audit does not belong in this run.
 
+The strongest signal, which run 3 found in every entry that survived with its value intact:
+
+> A field with an accumulating body of SUFFICIENT conditions and no necessity or obstruction machinery at all.
+
+That asymmetry is reliable because sufficiency is what constructive methods and automated search produce, so the necessity side is structurally under-attacked. It generalizes: prefer problems where the NEGATIVE direction is the deliverable. "Certify that no object of this kind exists in this explicitly delimited class" is publishable at every class size, is self-certifying, and is what a model is differentially good at — exhaustive, error-prone, symbolic case analysis that humans avoid. Record-beating framings — find a denser packing, a better function, a new solvable model — have no partial credit and compete against decades of specialist tooling.
+
+Two structural properties that decide whether a plan runs at all:
+
+- The object space is finite and enumerable at a size you can state in advance — graphs on at most 8 vertices, magmas of order at most 15, presentations of total length at most L. Then "we swept class C and found nothing" is itself the result.
+- A reformulation exists that turns an existential real-quantifier problem into ideal membership or LP feasibility at fixed low degree: moments instead of eigenvalues, invariants instead of coordinates, transfer operators instead of the full Hilbert space. This is usually the difference between a plan that terminates and one that dies at "elimination did not finish."
+
 What makes a genuine open problem attackable:
 
 - A resolution would be short. A counterexample small enough to exhibit and check, a construction whose certificate fits on a page, a proof measured in pages rather than volumes. Length is the binding constraint on what can be found in one run, and a short solution is also self-certifying in a way a long one is not.
@@ -78,6 +89,12 @@ What to avoid:
 - Pushing a published search frontier by re-implementing the known method. Frontiers sit where a competent person already spent the constant factors: a model buys 2-10x, the next step usually costs 10-1000x. Admit one of these only when a specific >=10x structural reduction is identifiable before any code is written.
 - Problems whose only checkable output is an informal argument. If a wrong answer looks exactly like a right one, the run emits a false result into the record and that is worse than no attempt.
 - Anything already closed. Check before returning it, and treat folklore and unpublished-but-known results as closed.
+
+Three mistakes cost more points than anything else in run 3. Check each before returning a candidate:
+
+- Assuming the space is unswept. Four of eleven entries lost half or all their value to a published algorithm that already outputs the objects the plan meant to find. Search specifically for an automated pipeline in the target literature, not just for the result. "Nobody has swept this programmatically" is a claim that requires a citation.
+- Attacking a proxy for the real property. Spectra instead of the operator algebra, convex hulls instead of the bodies, admissible multisets instead of full spectra with placement. The proxy is always cheaper to compute and provably decides a different question. Confirm on a worked example that the computed predicate is logically equivalent to the target property.
+- A kill condition that cannot fire. Two entries specified exits that arithmetic shows will always pass. Compute the kill condition at pitch time rather than asserting it — a probe whose only possible outcome is "proceed" is not instrumented.
 
 For every candidate, name the barrier the angle must evade, and say how someone would learn cheaply that the angle fails.`,
     axes: {
