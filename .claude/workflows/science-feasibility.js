@@ -183,8 +183,143 @@ Null-publishability is the tiebreaker. If nothing ships when the headline claim 
   },
 };
 
+// Territory covered by runs 1-3: every candidate surveyed, scored, or judged,
+// whether it survived or died. Surveys are told to skip these so a repeat run
+// explores instead of re-deriving the same shortlist. Append to this as runs
+// accumulate, or override wholesale with args.exclude.
+const SEEN = [
+  "3-query locally decodable codes: beat the near-cubic lower bound",
+  "A decoy control for the peptide evidence behind non-canonical ORFs",
+  "Adult human hippocampal neurogenesis: are the \"neuroblast/immature granule neuron\" clusters in snRNA-seq real, or an annotation artifact?",
+  "An explicit non-identifiability certificate for COSMIC mutational signature attribution (SBS3 / SBS5 / SBS40)",
+  "Approximate Nash equilibria in bimatrix games: get below 1/3",
+  "Are chemically invalid MOF structures systematically over-represented at the top of published screening rankings?",
+  "Audit and extend the unverified record chain for the Erd\u0151s unit-distance exponent",
+  "Automorphisms of the missing Moore graph (degree 57)",
+  "Beat the Weaire-Phelan partition (the Kelvin problem)",
+  "Benguria\u2013Loss ovals conjecture (sharp Lieb\u2013Thirring constant at \u03b3=1, d=1)",
+  "Block sensitivity vs sensitivity: push the exponent below 4",
+  "Cavity versus non-cavity structure of the hydrated electron \u2014 which model survives the full set of measured observables?",
+  "Characteristic 2 and dimension >= 4 analogues of the new Jacobian conjecture counterexample",
+  "Characteristic 2 and dimension \u2265 4 analogues of the new Jacobian conjecture counterexample",
+  "Closing specific entries on the HUPO missing-proteins table from unmined public mass spectrometry",
+  "Completing the Shiraishi\u2013Yamaguchi integrability dichotomy beyond spin S = 13.5",
+  "Conway's 99-graph: eliminate the remaining possible automorphism orders",
+  "Conway's 99-graph: existence of a strongly regular graph with parameters (99, 14, 1, 2)",
+  "Covering radius of RM(1,9): is the maximum nonlinearity of a 9-variable Boolean function 242 or 244?",
+  "Cross-platform audit of cis-pQTL drug-target Mendelian randomization for epitope artifacts",
+  "Cross-registry audit of AI-claimed combinatorial and algorithmic records against maintained specialist tables",
+  "Cross-registry audit of the two independent evaluated-kinetics panels (NASA/JPL vs. IUPAC) for atmospheric chemistry",
+  "Crouzeix's conjecture for general 3\u00d73 matrices",
+  "Decidability of the Skolem Problem for order-5 linear recurrence sequences",
+  "Densest packing of regular tetrahedra: beat 4000/4671 via exact lattice packing of non-dimer clusters",
+  "Does GNoME's convex-hull expansion survive rigorous isometry-invariant de-duplication?",
+  "Does effective population size affect the germline mutation rate? A three-way contradiction on identical public data",
+  "Does human FNDC5 produce circulating irisin, and from which start codon?",
+  "Does lattice oxygen carry turnover in acidic OER, or is it a one-shot surface reservoir?",
+  "Does spontaneous H2O2 formation in water microdroplets survive a quantitative interfacial-flux accounting?",
+  "Does the Hill\u2013Irving graph G127 arrow (3,3)? (edge Folkman number Fe(3,3;4))",
+  "Does the Red Sea rerouting constraint on ship aerosol\u2013cloud sensitivity hold out of sample in 2025\u20132026?",
+  "E677 \u22a8_fin E255: the last open implication of the Equational Theories Project",
+  "Equatorial Pacific zonal SST gradient trend: forced response, model mean-state bias, or internal variability?",
+  "Exact KPZ exponents in d \u2265 2 and the existence of a finite upper critical dimension",
+  "Exact comparison complexity of selection: the value V_7(16)",
+  "Exact constants in open addressing after the fall of Yao's conjecture",
+  "Exact value of the 2D percolation chemical-distance (shortest-path) exponent d_min",
+  "Existence of a q-analog of the Fano plane (binary 2-(7,3,1)_2 subspace design), and the [7,4;3]_2 constant-dimension code gap 333 vs 381",
+  "Existence of an extremal binary self-dual [72,36,16] code",
+  "Explicit upper bound for the real sum-product exponent after the May 2026 disproof",
+  "Forced step or El Ni\u00f1o spike: scoring the 2023-vintage predictions of Earth's energy imbalance against 2024\u20132026 CERES",
+  "Friends of 10: raise the lower bound on the number of distinct prime factors",
+  "Hindman's {x, y, x+y, xy} conjecture for three colours \u2014 via its unexamined finite (Rado-number) form",
+  "How large can distributed quantum advantage be for locally checkable labeling problems?",
+  "How much of the post-2000 rise in Earth's energy imbalance is aerosol-driven versus cloud feedback? Two 2025\u20132026 papers give opposite answers",
+  "Improving the capacity lower bound for the binary deletion channel at high deletion rate",
+  "Is D(f) = O(deg(f)^2)? (the Nisan-Smolensky cube-vs-square gap)",
+  "Is the CMIP model failure to reproduce eastern-Pacific and Southern Ocean cooling a resolution/stratocumulus error rather than a forced-versus-internal-variability question?",
+  "Is the molecular O\u2082 seen by RIXS in Li-rich cathodes real electrochemistry or a core-hole artifact?",
+  "Is the prevention-versus-treatment defense of the GLP-1/dementia literature falsifiable with data already public?",
+  "Is trapped molecular O2 in Li-rich cathodes real electrochemistry or a RIXS core-excitation artifact?",
+  "List update: break 1.6 with a non-projective randomized algorithm, or settle the 3-item case exactly",
+  "Lower critical dimension of the de Almeida\u2013Thouless line for short-range Ising spin glasses",
+  "Lower the dimension threshold in the sausage conjecture",
+  "Maximum number of minimal dominating sets in an n-vertex graph",
+  "Metformin's target at therapeutic exposure: PEN2/v-ATPase versus intestinal complex I",
+  "Move an entry in Grechuk's living table of smallest open Diophantine equations",
+  "Moving bedaquiline entries in the WHO M. tuberculosis mutation catalogue from 'uncertain' to graded",
+  "Multiplicative complexity of the AES S-box: is 32 AND gates optimal?",
+  "N6-methyladenine in mammalian nuclear DNA: real mark, salvage incorporation, or contamination",
+  "Natural boundary of the 2D Ising susceptibility (Nickel) vs. extended analyticity of Ising field theory (Fonseca\u2013Zamolodchikov)",
+  "Necessary conditions for free-fermion solvability ('free fermions in disguise' classification)",
+  "Optimal redundancy of binary 2-deletion-correcting codes: 2 log n or 4 log n?",
+  "Optimal size of a sorting network on 13 channels: is S(13) = 44 or 45?",
+  "Order of finite weak central groupoids (ETP law E1485) is n\u00b2 or 2n\u00b2",
+  "Out-of-sample test of the selection-based explanation for the eQTL\u2013GWAS colocalization gap",
+  "Persistence Conjecture for weakly reversible mass-action systems, dimension-4 case",
+  "Prove or refute the Nivesvivat\u2013Ribault\u2013Jacobsen conjecture on critical loop-model structure constants",
+  "Raise a generic-rank record for elliptic surfaces over Q(t) with prescribed torsion",
+  "Randomized round complexity of locally optimal cut in the LOCAL model",
+  "Re-adjudicating the Kyber-512 memory-cost dispute against post-2023 sieving measurements",
+  "Reconciling the null EVOKE trials with the large observational GLP-1/dementia signal",
+  "Robustness of the wait-free consensus hierarchy for deterministic types",
+  "Shrink the smallest Turing machine whose halting is independent of ZFC",
+  "Spectral gap of the spin-2 AKLT model on the square lattice",
+  "Tensor rank of 3\u00d73 matrix multiplication: does a rank-22 algorithm exist?",
+  "The 2020\u20132022 methane surge: what fraction was an OH sink decline versus a microbial emission increase?",
+  "The 8-loop \u03b5-expansion vs. conformal-bootstrap drift in the 3d Ising exponents \u03bd and \u03c9",
+  "The 8\u03c3 \u03bb-point discrepancy: superfluid \u2074He critical exponent \u03bd vs. O(2) Monte Carlo and conformal bootstrap",
+  "The CMD-3 e\u207ae\u207b\u2192\u03c0\u207a\u03c0\u207b cross-section discrepancy and the data-driven hadronic vacuum polarization",
+  "The DES-SN5YR vs. Pantheon+ low-redshift offset that decides whether dark energy evolves",
+  "The Muon Puzzle: the muon deficit in air-shower simulations",
+  "The aetiology of COSMIC signature SBS12",
+  "The arctic curve of the six-vertex model with partial domain-wall boundaries away from the free-fermion point",
+  "The causal gene and causal tissue at the FTO obesity locus",
+  "The cosmic number-count dipole excess in quasar and radio catalogues",
+  "The effector gene at 9p21.3, the strongest common-variant locus for coronary artery disease",
+  "The exact quantum maximum of the I3322 Bell inequality and the P\u00e1l\u2013V\u00e9rtesi infinite-dimension conjecture",
+  "The exact value of the Ramsey number R(3,10)",
+  "The exponent in blocklength lower bounds for linear 3-query LCCs over non-binary fields",
+  "The four compounds the A-Lab correction left inconclusive",
+  "The homogeneous ice nucleation rate gap: is it the water model's driving force, the rare-event method, or the experimental extraction?",
+  "The kissing number in dimension 5",
+  "The last open Equational Theories Project implication: E677 \u22a7_fin E255",
+  "The missing null calibration for the GWTC-4.0 combined ringdown deviation, where GR now sits at the 98.6% boundary",
+  "The molecular target through which SGLT2 inhibitors protect the failing heart",
+  "The ncm5U34 amidase: an orphan enzyme unknown in every organism",
+  "The negative control that was never run on the 2025 adult human hippocampal neurogenesis claim",
+  "The per-neuron rate of somatic L1 retrotransposition in human brain",
+  "The quasar number-count dipole: a matched-source cross-registry test that nobody has run",
+  "The rigorous lower bound on the square-lattice site percolation threshold, unmoved since 1996",
+  "The stellar-interior iron opacity discrepancy and the solar abundance problem",
+  "The transported substrate of SLC25A47, a liver-specific orphan mitochondrial carrier",
+  "The true out-of-sample ceiling for protein\u2013ligand cofolding: reconciling Runs N' Poses with the Mac1 prospective benchmark",
+  "The \u03bb-point anomaly: the 8\u03c3 disagreement in the O(2) correlation-length exponent between the zero-gravity helium experiment and theory",
+  "Three mutually orthogonal Latin squares of order 10",
+  "Trivialize a remaining unsolved Miller\u2013Schupp presentation in the public Andrews\u2013Curtis benchmark",
+  "Unconditional cubic separation between randomized and quantum query complexity for total Boolean functions",
+  "Unstable Andrews\u2013Curtis trivialization of AK(3) and the residual Miller\u2013Schupp presentations",
+  "Water's second critical point vs. glassy arrest: does the March 2026 Science claim survive its own missing control?",
+  "Which Cu nuclearity is the kinetically relevant active site for direct CH\u2084 \u2192 CH\u2083OH in Cu-exchanged zeolites?",
+  "Which intratumoral microbial signals in TCGA are biology and which are contamination?",
+  "Which remaining hypothesis explains the ~11 Gg yr\u207b\u00b9 HFC-23 gap between reported and observed emissions?",
+  "\u03a0\u00b9\u2081-conservativity of Ramsey's theorem for pairs over RCA\u2080 + B\u03a3\u2070\u2082",
+];
+
 const profile = PROFILES[args?.profile ?? 'open-problem'];
 if (!profile) throw new Error(`unknown profile: ${args?.profile} — expected one of ${Object.keys(PROFILES).join(', ')}`);
+
+// Names already ranked or killed by earlier runs. Passing these keeps a repeat
+// run additive instead of re-deriving the same shortlist: the prospecting text
+// accumulates across runs, so the same net over the same water returns the same
+// fish with better commentary.
+const EXCLUDE = args?.exclude ?? SEEN;
+const EXCLUSION = EXCLUDE.length
+  ? `
+
+Earlier runs of this workflow already assessed the problems below. Do not return any of them, and do not return a restatement of one under a different name. They are listed so you can spend this run somewhere else — treat the list as territory already covered, not as a quality signal in either direction.
+
+${EXCLUDE.map((n) => `- ${n}`).join('\n')}`
+  : '';
 
 const AXES = Object.keys(profile.axes);
 const MAX_TOTAL = AXES.length * 5;
@@ -290,7 +425,7 @@ const perDomain = await pipeline(
 Domain: ${d.brief}
 
 Search the literature and recent preprints — do not work from memory alone, since the frontier moves and half-remembered problems are often already closed. Verify each is still open before returning it. Prefer problems that are precisely stated and whose answers are checkable over problems that are merely famous; a sharp unresolved special case is worth more here than the big conjecture it sits under.
-${profile.prospecting}
+${profile.prospecting}${EXCLUSION}
 
 Return 5-8 candidates. Do not attempt to solve anything.`,
       { label: `survey:${d.key}`, phase: 'Survey', schema: CANDIDATES },
