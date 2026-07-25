@@ -60,20 +60,31 @@ const DOMAINS = args?.domains ?? [
 // workflow that accumulates: each run's structural finding becomes the next
 // run's prospecting filter.
 const PROSPECTING = `
-What to look for, in rough order of value:
+The single highest-yield target, which run 2 converged on from five independent directions:
 
-- Claims with expiry dates. One side of a live dispute made a dated, reversible prediction that has since become checkable against data postdating the argument. A genuine out-of-sample test is worth more than any other single property a candidate can have.
-- Entries on maintained record tables — coding bounds, design tables, circuit-complexity records, verified-value tables — where the record-holder's method is published and the symmetry it exploits is narrow. These are refereed, unambiguous, and moving one is a real result.
+> Two or more authoritative sources describing the same objects under the same or translatable formalism, with no published crosswalk between them, where at least one source date-stamps its records.
+
+The deliverable there is the crosswalk itself, not a discrepancy. That matters because the hit rate on finding discrepancies is nearly always low, while the joined table has value whether or not anything disagrees. In nine of ten run-2 candidates the headline claim turned out to be occupied and the unmaintained joined table did not — so prefer the table from the start rather than being forced into it later.
+
+Also good, in rough order:
+
+- Claims with expiry dates. One side of a live dispute made a dated, reversible prediction that later data can now check. A genuine out-of-sample test is worth more than any other single property.
+- Entries on maintained record tables where the record-holder's method is published and the symmetry it exploits is narrow. Refereed, unambiguous, and moving one is a real result.
 - Smaller adjacent targets. For any famous open problem, ask whether a tracked incremental record sits next to it with a short certificate. Attacking the neighbour beats attacking the monument.
 - Refereed claims resting on a control the authors never ran, where the control set is assemblable from public data whose sufficiency is obvious on inspection.
-- Cross-registry consistency checks: two independent public repositories that should agree, where nobody has checked.
 
-What to avoid, because run 1 died entirely on these two shapes:
+What to avoid. Each of these killed something in a previous run:
 
-- The normalization play: "n papers report the deciding quantity in incompatible units, so rebuild them onto one axis and the dispute becomes arithmetic." The pathology is that whether the data can resolve the dispute is only knowable after you have built the whole table, and convention chaos is usually a symptom of an underdetermined measurement rather than its cause. Only admit one of these if input sufficiency is confirmable up front.
-- The compute-frontier play: "the obstruction is engineering, so re-implement the known search with better symmetry breaking and push one step." Published frontiers sit exactly where a competent person already spent the available constant factors. A model buys 2-10x; the next step usually costs 10-1000x. Only admit one of these if a specific >=10x state-space reduction is identifiable before any code is written.
+- The normalization play: "n papers report the deciding quantity in incompatible units, so rebuild them onto one axis and the dispute becomes arithmetic." Whether the data can resolve the dispute is only knowable after building the whole table, and convention chaos is usually a symptom of an underdetermined measurement rather than its cause. Admit only if input sufficiency is confirmable up front.
+- The compute-frontier play: "the obstruction is engineering, so re-implement the known search with better symmetry breaking and push one step." Published frontiers sit where a competent person already spent the available constant factors. A model buys 2-10x; the next step usually costs 10-1000x. Admit only if a specific >=10x state-space reduction is identifiable before any code is written.
+- "Nobody has cross-checked this because it is tedious." Usually false, and false in a specific way: the adjudicating body is often the ingesting body. Name the body that would have done the check and say why it has not.
+- Assuming two sources are independent silos. Check membership overlap and mutual citation first — a cross-silo edge evaporates when the silos turn out to be one room.
+- "Cycle the full classical toolkit against the open entries." That is already the table maintainer's method, and the open entries are the fixed point of that sweep.
+- Days-old announcements. Recency is negative value: the crowd is fastest exactly where the problem is newest.
+- Definitional disputes dressed as empirical ones. Ask whether a perfect measurement would settle it. If not, the best available deliverable is legibility tooling.
+- Promising to build a table that already exists. Search for it first.
 
-For every candidate, state how someone would find out cheaply that it is hopeless. If the only way to learn that is to do the project, it does not belong on the list.
+For every candidate, state how someone would find out cheaply that it is hopeless, and state what ships if the headline claim fails. If the only way to learn it is hopeless is to do the project, or if a failed headline claim leaves nothing publishable, it does not belong on the list.
 `;
 
 const CANDIDATES = {
@@ -113,7 +124,7 @@ const SCORED = {
           name: { type: 'string' },
           scores: {
             type: 'object',
-            required: ['verifiability', 'costToKill', 'searchShape', 'priorArtLeverage', 'decomposability', 'inputSufficiency'],
+            required: ['verifiability', 'costToKill', 'searchShape', 'priorArtLeverage', 'decomposability', 'inputSufficiency', 'nullPublishable'],
             properties: {
               verifiability: { type: 'number', description: '0-5: can a candidate answer be checked cheaply and unambiguously by something external — a proof kernel, a truth table, held-out data the claim was not fit to. Not "a careful audit trail"' },
               costToKill: { type: 'number', description: '0-5: 5 if a bounded, concretely specified probe falsifies the central assumption in the first hour; 1 if learning it is hopeless requires building the deliverable' },
@@ -121,12 +132,14 @@ const SCORED = {
               priorArtLeverage: { type: 'number', description: '0-5: progress plausibly comes from connecting existing results across silos, which is where a model has an edge over a specialist' },
               decomposability: { type: 'number', description: '0-5: splits into sub-lemmas or cases that can be attacked and banked independently, so a stalled run still emits something' },
               inputSufficiency: { type: 'number', description: '0-5: the public inputs demonstrably carry enough resolution to separate the hypotheses, and that can be confirmed before the work rather than after' },
+              nullPublishable: { type: 'number', description: '0-5: if the headline claim fails — no discrepancy found, no record moved — something complete and useful still ships. 5 if the null result is itself the artifact; 0 if a failed headline claim leaves nothing' },
             },
           },
           total: { type: 'number' },
           theoryOfAttack: { type: 'string', description: 'the specific reason to think a model could crack this — which capability meets which structural feature of the problem' },
           firstMove: { type: 'string', description: 'the concrete opening step a solving run should take' },
           killCondition: { type: 'string', description: 'the observation that should make a solving run abandon this problem early — and it must be observable well before the project is finished' },
+          shipsOnNull: { type: 'string', description: 'the concrete artifact that exists at the end even if the headline claim comes back empty' },
         },
       },
     },
@@ -187,7 +200,9 @@ Score each dimension in the schema 0-5 and set total to their sum. Two axes dese
 
 Verifiability. A problem where a wrong answer looks exactly like a right one is worse than no attempt, because it consumes the run and emits a false result into the record. Reserve 5 for an external, pre-existing, cheap checker.
 
-Cost-to-kill. The previous run of this workflow carried twelve doomed candidates to full write-up because none of them could be falsified before the project was essentially complete. If the first move and the kill condition are the same activity, that is a low score, however elegant the problem.
+Cost-to-kill. An earlier run of this workflow carried twelve doomed candidates to full write-up because none of them could be falsified before the project was essentially complete. If the first move and the kill condition are the same activity, that is a low score, however elegant the problem.
+
+Null-publishability is the tiebreaker that separated the survivors from the near-misses last run. Every candidate that held a positive score after refutation had a deliverable that a zero-discrepancy, zero-improvement outcome still completes. If nothing ships when the headline claim fails, cap the total at 15 regardless of the other axes and say so in theoryOfAttack.
 
 The important field is theoryOfAttack. The next run will read it and try to actually solve the problem, so it needs to say why this problem might yield — which specific structural feature meets which specific model strength (formal verification loops, exhaustive case analysis, cross-domain literature synthesis, program search against a checker, reformulation into a solved framework). "The model is smart" is not a theory of attack. Neither is restating the problem. Say what the crack in it is.
 
